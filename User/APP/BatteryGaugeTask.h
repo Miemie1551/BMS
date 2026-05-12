@@ -1,6 +1,6 @@
-#ifndef __DRV_I2C_H
-#define __DRV_I2C_H
+#ifndef __BATTERYGAGETASK_H
+#define __BATTERYGAGETASK_H
 
+void BatteryGaugeTask(void *argument);
 
-
-#endif /* __DRV_I2C_H */
+#endif /* __BATTERYGAGETASK_H */

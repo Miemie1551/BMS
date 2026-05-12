@@ -1,2 +1,13 @@
 .\bms\balancecontroltask.o: ..\User\APP\BalanceControlTask.c
 .\bms\balancecontroltask.o: ..\User\APP\BalanceControlTask.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\balancecontroltask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\bms\balancecontroltask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\balancecontroltask.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\balancecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h

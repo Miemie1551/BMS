@@ -1,1 +1,10 @@
-#include "drv_i2c.h"
+#include "BatteryGaugeTask.h"
+#include "cmsis_os.h"
+
+void BatteryGaugeTask(void *argument)
+{
+    for (;;)
+    {
+        osDelay(2000);
+    }
+}

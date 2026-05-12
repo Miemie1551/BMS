@@ -16,7 +16,7 @@ typedef struct
     int16_t battery_current;  // 电池组电流，单位：mA
     int16_t temperature;      // 电池组温度，单位：℃
 
-    uint16_t cell_voltages[9]; // 9个单体电压，单位：mV
+    uint16_t cell_voltages_array[9]; // 9个单体电压数组，单位：mV
 } BMS_Data_t;
 
 extern BMS_Data_t g_bms_data;

@@ -40,6 +40,7 @@
 ".\bms\batterygaugetask.o"
 ".\bms\commtask.o"
 ".\bms\balancecontroltask.o"
+".\bms\log.o"
 ".\bms\bsp_bq76940.o"
 ".\bms\drv_i2c.o"
 --library_type=microlib --strict --scatter ".\BMS\BMS.sct"

@@ -1,2 +1,13 @@
 .\bms\statecontroltask.o: ..\User\APP\StateControlTask.c
 .\bms\statecontroltask.o: ..\User\APP\StateControlTask.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\statecontroltask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\bms\statecontroltask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\statecontroltask.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\statecontroltask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h

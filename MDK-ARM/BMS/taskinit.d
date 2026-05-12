@@ -11,4 +11,9 @@
 .\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
 .\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
 .\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+.\bms\taskinit.o: ..\User\APP\FaultProtectTask.h
 .\bms\taskinit.o: ..\User\APP\DataAcqTask.h
+.\bms\taskinit.o: ..\User\APP\StateControlTask.h
+.\bms\taskinit.o: ..\User\APP\BatteryGaugeTask.h
+.\bms\taskinit.o: ..\User\APP\CommTask.h
+.\bms\taskinit.o: ..\User\APP\BalanceControlTask.h
