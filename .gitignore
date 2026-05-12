@@ -1,0 +1,5 @@
+# 忽略 Keil MDK 的 GUI 设置文件
+*.uvguix.lw
+
+# 忽略所有位置的 .vscode 目录
+**/.vscode/

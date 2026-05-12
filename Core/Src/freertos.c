@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "TaskInit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,18 +54,6 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for DataAcqTask */
-osThreadId_t DataAcqTaskHandle;
-const osThreadAttr_t DataAcqTask_attributes = {
-  .name = "DataAcqTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal6,
-};
-/* Definitions for Mutex_BMS_Info */
-osMutexId_t Mutex_BMS_InfoHandle;
-const osMutexAttr_t Mutex_BMS_Info_attributes = {
-  .name = "Mutex_BMS_Info"
-};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -73,7 +61,6 @@ const osMutexAttr_t Mutex_BMS_Info_attributes = {
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -84,11 +71,8 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  TaskInit();
   /* USER CODE END Init */
-  /* Create the mutex(es) */
-  /* creation of Mutex_BMS_Info */
-  Mutex_BMS_InfoHandle = osMutexNew(&Mutex_BMS_Info_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -109,9 +93,6 @@ void MX_FREERTOS_Init(void) {
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
-  /* creation of DataAcqTask */
-  DataAcqTaskHandle = osThreadNew(StartTask02, NULL, &DataAcqTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -136,27 +117,10 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    HAL_GPIO_TogglePin(LED_D3_GPIO_Port, LED_D3_Pin);
+    osDelay(500);
   }
   /* USER CODE END StartDefaultTask */
-}
-
-/* USER CODE BEGIN Header_StartTask02 */
-/**
-* @brief Function implementing the DataAcqTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
-{
-  /* USER CODE BEGIN StartTask02 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartTask02 */
 }
 
 /* Private application code --------------------------------------------------*/

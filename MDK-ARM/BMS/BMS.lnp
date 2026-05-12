@@ -32,6 +32,16 @@
 ".\bms\cmsis_os2.o"
 ".\bms\heap_4.o"
 ".\bms\port.o"
+".\bms\bms_global.o"
+".\bms\taskinit.o"
+".\bms\faultprotecttask.o"
+".\bms\dataacqtask.o"
+".\bms\statecontroltask.o"
+".\bms\batterygaugetask.o"
+".\bms\commtask.o"
+".\bms\balancecontroltask.o"
+".\bms\bsp_bq76940.o"
+".\bms\drv_i2c.o"
 --library_type=microlib --strict --scatter ".\BMS\BMS.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

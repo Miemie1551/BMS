@@ -1,0 +1,14 @@
+.\bms\taskinit.o: ..\User\APP\TaskInit.c
+.\bms\taskinit.o: ..\User\APP\TaskInit.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\taskinit.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\bms\taskinit.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\taskinit.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\taskinit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+.\bms\taskinit.o: ..\User\APP\DataAcqTask.h

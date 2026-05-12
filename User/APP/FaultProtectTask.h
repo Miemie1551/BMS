@@ -1,0 +1,4 @@
+#ifndef __FAULTPROTECTTASK_H
+#define __FAULTPROTECTTASK_H
+
+#endif /* __FAULTPROTECTTASK_H */
