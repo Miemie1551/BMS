@@ -3,3 +3,21 @@
 
 # 忽略所有位置的 .vscode 目录
 **/.vscode/
+
+# 忽略 Keil MDK 的编译输出文件
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.d
+*.axf
+*.iex
+*.dep
+*.dbg
+*.crf
+*.htm
+*lnp
+*.sct

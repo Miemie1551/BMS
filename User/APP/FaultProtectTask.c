@@ -1,4 +1,5 @@
 #include "FaultProtectTask.h"
+#include "cmsis_os.h"
 
 void FaultProtectTask(void *argument)
 {
