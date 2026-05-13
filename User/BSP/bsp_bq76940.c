@@ -104,7 +104,7 @@ static I2C_Handle_t hi2c =
         .SDA_Pin = BQ76940_I2C_SDA_PIN,
         .DeviceAddress = BQ76940_DEVICE_ADDR};
 
-// 单体电池id索引映射表
+// 电芯id索引映射表
 static const uint8_t cell_id_index_map[CELL_TOTAL] =
     {1, 2,
      5, 6, 7,
@@ -535,7 +535,7 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
 }
 
 /**
- * @brief 查找单体电池最高电压ID
+ * @brief 查找电芯最高电压ID
  * @param _voltages 电压数组
  * @param _max_voltage_id 存储最高电压ID的指针
  */
@@ -557,10 +557,11 @@ void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint16_t *_max_voltage_i
 }
 
 /**
- * @brief 均衡指定单体电池
- * @param _cell_id 单体电池ID（1-15)
+ * @brief 均衡指定电芯
+ * @param _cell_id 电芯ID（1-15)
+ * @param _new_state 新状态（0表示停止均衡，1表示开始均衡）
  */
-void BQ76940_BalanceCell(uint8_t _cell_id)
+void BQ76940_CellBalanceControl(uint8_t _cell_id)
 {
     if (_cell_id < 1 || _cell_id > 15)
     {
@@ -587,7 +588,18 @@ void BQ76940_BalanceCell(uint8_t _cell_id)
         bal_reg_addr = CELLBAL3;
         bal_bit_mask = 1 << (_cell_id - 11);
     }
+
     LOG_D("Balancing cell %d: Write 0x%02X to register 0x%02X", _cell_id, bal_bit_mask, bal_reg_addr);
     // 启动均衡
     BQ76940_WriteByteWithCRC(bal_reg_addr, bal_bit_mask);
+}
+
+/**
+ *  @brief 停止均衡全部电芯
+ */
+void BQ76940_CellBalanceStop(void)
+{
+    BQ76940_WriteByteWithCRC(CELLBAL1, 0);
+    BQ76940_WriteByteWithCRC(CELLBAL2, 0);
+    BQ76940_WriteByteWithCRC(CELLBAL3, 0);
 }

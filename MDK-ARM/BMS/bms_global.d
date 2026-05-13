@@ -29,3 +29,12 @@
 .\bms\bms_global.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 .\bms\bms_global.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 .\bms\bms_global.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\bms_global.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\bms_global.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h

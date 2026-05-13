@@ -1,2 +1,13 @@
 .\bms\faultprotecttask.o: ..\User\APP\FaultProtectTask.c
 .\bms\faultprotecttask.o: ..\User\APP\FaultProtectTask.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\faultprotecttask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\bms\faultprotecttask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\faultprotecttask.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\faultprotecttask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h

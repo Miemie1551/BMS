@@ -6,13 +6,14 @@
 /* SYS_STAT位枚举变量定义 */
 typedef enum
 {
-    STAT_CC_READY_BIT = 1 << 7,
-    STAT_DEVICE_XREADY_BIT = 1 << 5,
-    STAT_OVRD_ALERT_BIT = 1 << 4,
-    STAT_UV_BIT = 1 << 3,
-    STAT_OV_BIT = 1 << 2,
-    STAT_SCD_BIT = 1 << 1,
-    STAT_OCD_BIT = 1 << 0
+    STAT_ALL = 0xBF,
+    STAT_CC_READY_BIT = 0x01 << 7,
+    STAT_DEVICE_XREADY_BIT = 0x01 << 5,
+    STAT_OVRD_ALERT_BIT = 0x01 << 4,
+    STAT_UV_BIT = 0x01 << 3,
+    STAT_OV_BIT = 0x01 << 2,
+    STAT_SCD_BIT = 0x01 << 1,
+    STAT_OCD_BIT = 0x01 << 0
 } SYS_STAT_Bits;
 
 uint8_t BQ76940_Init(void);
@@ -28,5 +29,9 @@ uint8_t BQ76940_OpenDSG(void);
 uint8_t BQ76940_CloseDSG(void);
 uint8_t BQ76940_OpenCHG(void);
 uint8_t BQ76940_CloseCHG(void);
+
+void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint16_t *_max_voltage_id);
+void BQ76940_CellBalanceControl(uint8_t _cell_id);
+void BQ76940_CellBalanceStop(void);
 
 #endif /* __BSP_BQ76940_H */

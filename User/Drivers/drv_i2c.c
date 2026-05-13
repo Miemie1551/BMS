@@ -7,6 +7,18 @@ static void I2C_Delay(void)
         __NOP();
 }
 
+// 适用于72MHZ
+// static void delay_us(uint32_t us)
+// {
+// 	uint16_t i = 0;
+	
+// 	while(us--)
+// 	{
+// 		i = 10; //自己定义
+// 		while(i--);
+// 	}
+// }
+
 static void I2C_WriteSCL(I2C_Handle_t *hi2c, uint8_t state)
 {
     HAL_GPIO_WritePin(hi2c->I2C_Port, hi2c->SCL_Pin, (GPIO_PinState)state);

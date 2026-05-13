@@ -3,7 +3,7 @@
 .\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
 .\bms\dataacqtask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\bms\dataacqtask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
-.\bms\dataacqtask.o: ../Core/Inc/usart.h
+.\bms\dataacqtask.o: ..\User\APP\bms_global.h
 .\bms\dataacqtask.o: ../Core/Inc/main.h
 .\bms\dataacqtask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h
 .\bms\dataacqtask.o: ../Core/Inc/stm32f1xx_hal_conf.h
@@ -31,6 +31,14 @@
 .\bms\dataacqtask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 .\bms\dataacqtask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 .\bms\dataacqtask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\dataacqtask.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\dataacqtask.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+.\bms\dataacqtask.o: ../Core/Inc/usart.h
 .\bms\dataacqtask.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 .\bms\dataacqtask.o: ../User/BSP/bsp_bq76940.h
-.\bms\dataacqtask.o: ..\User\APP\bms_global.h
