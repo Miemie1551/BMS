@@ -25,13 +25,13 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature);
 uint8_t BQ76940_GetSystemStatus(uint8_t *status_bits);
 uint8_t BQ76940_ClearFaults(SYS_STAT_Bits bit_mask);
 
-uint8_t BQ76940_OpenDSG(void);
-uint8_t BQ76940_CloseDSG(void);
-uint8_t BQ76940_OpenCHG(void);
-uint8_t BQ76940_CloseCHG(void);
+uint8_t BQ76940_EnableDischarging(void);
+uint8_t BQ76940_DisableDischarging(void);
+uint8_t BQ76940_EnableCharging(void);
+uint8_t BQ76940_DisableCharging(void);
 
-void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint16_t *_max_voltage_id);
-void BQ76940_CellBalanceControl(uint8_t _cell_id);
-void BQ76940_CellBalanceStop(void);
+void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint8_t *_max_voltage_id);
+void BQ76940_StartBalancing(uint8_t _cell_id);
+void BQ76940_StopBalancing(void);
 
 #endif /* __BSP_BQ76940_H */

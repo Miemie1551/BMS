@@ -29,3 +29,12 @@
 .\bms\drv_i2c.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 .\bms\drv_i2c.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 .\bms\drv_i2c.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\bms\drv_i2c.o: ../Core/Inc/FreeRTOSConfig.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+.\bms\drv_i2c.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h

@@ -27,8 +27,8 @@
 #define BMS_BALANCE_VOLTAGE_THRESHOLD 50 // 平衡电压阈值
 
 // 状态转换电流阈值，单位：mA
-#define BMS_CHARGING_THRESHOLD 500   // 充电电流阈值
-#define BMS_DISCHARGING_THRESHOLD 50 // 放电电流阈值
+#define BMS_CHARGING_THRESHOLD 50     // 充电电流阈值
+#define BMS_DISCHARGING_THRESHOLD -50 // 放电电流阈值
 
 // BMS状态枚举
 typedef enum
@@ -36,8 +36,7 @@ typedef enum
     BMS_STATE_STANDBY = 0,
     BMS_STATE_CHARGING = 1,
     BMS_STATE_DISCHARGING = 2,
-    BMS_STATE_BALANCING = 3,
-    BMS_STATE_FAULT = 4
+    BMS_STATE_FAULT = 3
 } BMS_State_t;
 
 // 故障类型枚举

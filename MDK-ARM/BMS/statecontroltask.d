@@ -39,3 +39,4 @@
 .\bms\statecontroltask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 .\bms\statecontroltask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 .\bms\statecontroltask.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+.\bms\statecontroltask.o: ../User/BSP/bsp_bq76940.h

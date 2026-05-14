@@ -388,59 +388,59 @@ uint8_t BQ76940_ClearFaults(SYS_STAT_Bits bit_mask)
 }
 
 /**
- * @brief 打开DSG
+ * @brief 启用放电
  * @return 操作结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_OpenDSG(void)
+uint8_t BQ76940_EnableDischarging(void)
 {
     uint8_t sys_ctrl2_val = 0;
     if (BQ76940_ReadByteWithCRC(SYS_CTRL2, &sys_ctrl2_val) != 1)
     {
         return 0;
     }
-    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val | DSG_ON); // 打开DSG
+    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val | DSG_ON);
 }
 
 /**
- * @brief 关闭DSG
+ * @brief 禁用放电
  * @return 操作结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_CloseDSG(void)
+uint8_t BQ76940_DisableDischarging(void)
 {
     uint8_t sys_ctrl2_val = 0;
     if (BQ76940_ReadByteWithCRC(SYS_CTRL2, &sys_ctrl2_val) != 1)
     {
         return 0;
     }
-    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val & ~DSG_ON); // 关闭DSG
+    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val & ~DSG_ON);
 }
 
 /**
- * @brief 打开CHG
+ * @brief 启用充电
  * @return 操作结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_OpenCHG(void)
+uint8_t BQ76940_EnableCharging(void)
 {
     uint8_t sys_ctrl2_val = 0;
     if (BQ76940_ReadByteWithCRC(SYS_CTRL2, &sys_ctrl2_val) != 1)
     {
         return 0;
     }
-    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val | CHG_ON); // 打开CHG
+    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val | CHG_ON);
 }
 
 /**
- * @brief 关闭CHG
+ * @brief 禁用充电
  * @return 操作结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_CloseCHG(void)
+uint8_t BQ76940_DisableCharging(void)
 {
     uint8_t sys_ctrl2_val = 0;
     if (BQ76940_ReadByteWithCRC(SYS_CTRL2, &sys_ctrl2_val) != 1)
     {
         return 0;
     }
-    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val & ~CHG_ON); // 关闭CHG
+    return BQ76940_WriteByteWithCRC(SYS_CTRL2, sys_ctrl2_val & ~CHG_ON);
 }
 
 /**
@@ -507,7 +507,7 @@ const float Ka = 273.15;      // 开尔文与摄氏度的转换常数
 /**
  * @brief 读取温度值
  * @param temperature 存储温度值的指针，单位℃
- * @return 读取结果（1表示成功，0表示失败）
+ * @retval 读取结果（1表示成功，0表示失败）
  */
 uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
 {
@@ -538,11 +538,12 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
  * @brief 查找电芯最高电压ID
  * @param _voltages 电压数组
  * @param _max_voltage_id 存储最高电压ID的指针
+ * @retval None
  */
-void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint16_t *_max_voltage_id)
+void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint8_t *_max_voltage_id)
 {
     uint16_t max_voltage = 0;
-    uint16_t max_voltage_index = 0;
+    uint8_t max_voltage_index = 0;
 
     for (uint8_t i = 0; i < CELL_TOTAL; i++)
     {
@@ -557,11 +558,11 @@ void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint16_t *_max_voltage_i
 }
 
 /**
- * @brief 均衡指定电芯
+ * @brief 开始均衡指定电芯
  * @param _cell_id 电芯ID（1-15)
- * @param _new_state 新状态（0表示停止均衡，1表示开始均衡）
+ * @retval None
  */
-void BQ76940_CellBalanceControl(uint8_t _cell_id)
+void BQ76940_StartBalancing(uint8_t _cell_id)
 {
     if (_cell_id < 1 || _cell_id > 15)
     {
@@ -595,9 +596,10 @@ void BQ76940_CellBalanceControl(uint8_t _cell_id)
 }
 
 /**
- *  @brief 停止均衡全部电芯
+ * @brief 停止均衡全部电芯
+ * @retval None
  */
-void BQ76940_CellBalanceStop(void)
+void BQ76940_StopBalancing(void)
 {
     BQ76940_WriteByteWithCRC(CELLBAL1, 0);
     BQ76940_WriteByteWithCRC(CELLBAL2, 0);
