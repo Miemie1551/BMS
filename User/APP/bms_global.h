@@ -42,15 +42,20 @@ typedef enum
 // 故障类型枚举
 typedef enum
 {
-    FAULT_NONE = 0x00,
-    FAULT_CELL_OV = 0x01,       // 单体过压
-    FAULT_CELL_UV = 0x02,       // 单体欠压
-    FAULT_PACK_OV = 0x04,       // 总压过压
-    FAULT_PACK_UV = 0x08,       // 总压欠压
-    FAULT_OVERCURRENT = 0x10,   // 过流
-    FAULT_SHORT_CIRCUIT = 0x20, // 短路
-    FAULT_OVERTEMP = 0x40,      // 过温
-    FAULT_UNDERTEMP = 0x80      // 欠温
+    FAULT_NONE = 0x0000, // 无故障
+
+    FAULT_CELL_OV = 0x0001, // 单体过压
+    FAULT_CELL_UV = 0x0002, // 单体欠压
+    FAULT_PACK_OV = 0x0004, // 总压过压
+    FAULT_PACK_UV = 0x0008, // 总压欠压
+
+    FAULT_CHG_OC = 0x0010,        // 充电过流
+    FAULT_DSG_OC = 0x0020,        // 放电过流
+    FAULT_SHORT_CIRCUIT = 0x0040, // 短路
+    FAULT_OVERTEMP = 0x0080,   // 过温
+    
+    FAULT_UNDERTEMP = 0x01000, // 欠温
+    FAULT_AFE_COMM = 0x02000,  // AFE通信故障
 } BMS_Fault_t;
 
 // BMS数据结构定义
@@ -85,10 +90,7 @@ typedef struct
     BMS_State_t state; // 状态
 } BMS_Info_t;
 
-extern BMS_Info_t g_bms_info;
-extern osMutexId_t g_bms_info_mutex;
-
-extern void BMS_Global_Init(void);
+extern void BMS_Info_Init(void);
 extern void BMS_Info_Read(BMS_Info_t *dest);
 extern void BMS_Info_Write(const BMS_Info_t *src);
 

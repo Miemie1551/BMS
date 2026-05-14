@@ -1,14 +1,16 @@
 #include "StateControlTask.h"
 #include "cmsis_os.h"
+#include "usart.h"
 
 #include "bms_global.h"
-
 #include "bsp_bq76940.h"
 
-#define STATE_CHECK_PERIOD_MS 100
+#define LOG_E(fmt, ...) printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOG_D(fmt, ...) printf("[DEBUG] " fmt, ##__VA_ARGS__)
 
-static BMS_Info_t local_info;
-static BMS_State_t current_state = BMS_STATE_STANDBY;
+#define STATE_CHECK_PERIOD_MS 1000
+
+static BMS_Info_t info;
 
 static void BMS_StandbyStateHandler(void);
 static void BMS_ChargingStateHandler(void);
@@ -18,16 +20,17 @@ static void BMS_FaultStateHandler(void);
 static void BMS_EnterChargingMode(void);
 static void BMS_EnterDischargingMode(void);
 static void BMS_EnterStandbyMode(void);
+static void BMS_EnterFaultMode(void);
 
 void StateControlTask(void *argument)
 {
     for (;;)
     {
         // 获取当前电池信息
-        BMS_Info_Read(&local_info);
+        BMS_Info_Read(&info);
 
         // 状态机转换
-        switch (current_state)
+        switch (info.state)
         {
         case BMS_STATE_STANDBY:
             BMS_StandbyStateHandler();
@@ -41,12 +44,10 @@ void StateControlTask(void *argument)
         case BMS_STATE_FAULT:
             BMS_FaultStateHandler();
             break;
-        default:
-            break;
         }
 
         // 更新状态
-        BMS_Info_Write(&local_info);
+        BMS_Info_Write(&info);
 
         osDelay(STATE_CHECK_PERIOD_MS);
     }
@@ -58,64 +59,87 @@ void StateControlTask(void *argument)
  */
 static void BMS_StandbyStateHandler(void)
 {
-    // 检测充电或放电请求
-    if (local_info.pack_data.current > BMS_CHARGING_THRESHOLD)
+    // 检测故障
+    if (info.fault != FAULT_NONE)
     {
-        current_state = BMS_STATE_CHARGING;
-        BMS_EnterChargingMode();
+        info.state = BMS_STATE_FAULT;
+        BMS_EnterFaultMode();
     }
-    else if (local_info.pack_data.current < BMS_DISCHARGING_THRESHOLD)
+    // 检测充电或放电请求
+    else if (info.pack_data.current > BMS_CHARGING_THRESHOLD)
     {
-        current_state = BMS_STATE_DISCHARGING;
-        BMS_EnterDischargingMode();
+        info.state = BMS_STATE_CHARGING;
+    }
+    else if (info.pack_data.current < BMS_DISCHARGING_THRESHOLD)
+    {
+        info.state = BMS_STATE_DISCHARGING;
     }
 }
 
 static void BMS_ChargingStateHandler(void)
 {
-    // 充电完成或故障退出
-    if (local_info.soc >= 100 || local_info.fault != FAULT_NONE)
+    // 检测故障
+    if (info.fault != FAULT_NONE)
     {
-        current_state = BMS_STATE_STANDBY;
-        BMS_EnterStandbyMode();
+        info.state = BMS_STATE_FAULT;
+        BMS_EnterFaultMode();
+    }
+    // 充电完成或停止放电
+    else if (info.soc >= 100 || info.pack_data.current < BMS_CHARGING_THRESHOLD)
+    {
+        info.state = BMS_STATE_STANDBY;
+        // BMS_EnterStandbyMode();
     }
 }
 
 static void BMS_DischargingStateHandler(void)
 {
-    // 放电完成或故障退出
-    if (local_info.soc <= 0 || local_info.fault != FAULT_NONE)
+    // 检测故障
+    if (info.fault != FAULT_NONE)
     {
-        current_state = BMS_STATE_STANDBY;
-        BMS_EnterStandbyMode();
+        info.state = BMS_STATE_FAULT;
+        BMS_EnterFaultMode();
+    }
+    // 放电完成或停止充电
+    else if (info.soc <= 0 || info.pack_data.current > BMS_DISCHARGING_THRESHOLD)
+    {
+        info.state = BMS_STATE_STANDBY;
+        // BMS_EnterStandbyMode();
     }
 }
 
 static void BMS_FaultStateHandler(void)
 {
     // 故障状态保持，等待故障清除
-    if (local_info.fault == FAULT_NONE)
+    if (info.fault == FAULT_NONE)
     {
-        current_state = BMS_STATE_STANDBY;
+        info.state = BMS_STATE_STANDBY;
         BMS_EnterStandbyMode();
     }
 }
 
 static void BMS_EnterChargingMode(void)
 {
-    // 开启充电回路
-    BQ76940_EnableCharging();
+
 }
 
 static void BMS_EnterDischargingMode(void)
 {
-    // 开启放电回路
-    BQ76940_EnableDischarging();
+    
 }
 
 static void BMS_EnterStandbyMode(void)
 {
+    // 打开充电放电回路
+    BQ76940_EnableCharging();
+    BQ76940_EnableDischarging();
+    LOG_D("Turn on the charging and discharging circuitry\r\n");
+}
+
+static void BMS_EnterFaultMode(void)
+{
     // 关闭充电放电回路
     BQ76940_DisableCharging();
     BQ76940_DisableDischarging();
+    LOG_D("Turn off the charging and discharging circuitry\r\n");
 }
