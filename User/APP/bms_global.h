@@ -90,8 +90,10 @@ typedef struct
     BMS_State_t state; // 状态
 } BMS_Info_t;
 
-extern void BMS_Info_Init(void);
-extern void BMS_Info_Read(BMS_Info_t *dest);
-extern void BMS_Info_Write(const BMS_Info_t *src);
+void BMS_Info_Init(void);
+void BMS_CopyBMSInfo(BMS_Info_t *dest);
+void BMS_GetBMSInfoPtr(BMS_Info_t *dest);
+void BMS_AcquireBMSInfoMutex(void);
+void BMS_ReleaseBMSInfoMutex(void);
 
 #endif /* __BMS_GLOBAL_H */

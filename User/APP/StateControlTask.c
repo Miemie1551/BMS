@@ -11,6 +11,7 @@
 #define STATE_CHECK_PERIOD_MS 1000
 
 static BMS_Info_t info;
+static BMS_Info_t *info_ptr = NULL;
 
 static void BMS_StandbyStateHandler(void);
 static void BMS_ChargingStateHandler(void);
@@ -27,7 +28,9 @@ void StateControlTask(void *argument)
     for (;;)
     {
         // 获取当前电池信息
-        BMS_Info_Read(&info);
+        BMS_AcquireBMSInfoMutex(); // 获取互斥锁
+        BMS_CopyBMSInfo(&info);    // 复制最新BMS信息
+        BMS_ReleaseBMSInfoMutex(); // 释放互斥锁
 
         // 状态机转换
         switch (info.state)
@@ -47,7 +50,10 @@ void StateControlTask(void *argument)
         }
 
         // 更新状态
-        BMS_Info_Write(&info);
+        BMS_AcquireBMSInfoMutex();    // 获取互斥锁
+        BMS_GetBMSInfoPtr(info_ptr);  // 获取最新BMS信息指针
+        info_ptr->state = info.state; // 更新状态
+        BMS_ReleaseBMSInfoMutex();    // 释放互斥锁
 
         osDelay(STATE_CHECK_PERIOD_MS);
     }
@@ -120,12 +126,10 @@ static void BMS_FaultStateHandler(void)
 
 static void BMS_EnterChargingMode(void)
 {
-
 }
 
 static void BMS_EnterDischargingMode(void)
 {
-    
 }
 
 static void BMS_EnterStandbyMode(void)

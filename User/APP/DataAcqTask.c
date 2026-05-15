@@ -11,9 +11,10 @@
 #define LOG_E(fmt, ...) printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 static BMS_Info_t local_bms_info;
+static BMS_Info_t *info_ptr = NULL;
 
-static void SOC_Calculation(void);
-static void CellVoltageAnalysis(void);
+static void SOC_Calculate(void);
+static void CellParameter_Calculate(void);
 
 static void BMS_PrintInfo(void);
 static void BMS_StateOutput(void);
@@ -27,9 +28,6 @@ void DataAcqTask(void *argument)
 
     for (;;)
     {
-        // 读取电池信息
-        BMS_Info_Read(&local_bms_info);
-
         if (BQ76940_ReadCellVoltages(local_bms_info.cell_data.voltages, &local_bms_info.pack_data.voltage) != 1)
         {
             LOG_E("Failed to read cell voltages\r\n");
@@ -43,17 +41,21 @@ void DataAcqTask(void *argument)
         {
             LOG_E("Failed to read temperature\r\n");
         }
-        SOC_Calculation();
-        CellVoltageAnalysis();
+        SOC_Calculate(); // 计算SOC
+        CellParameter_Calculate(); // 计算电芯参数
 
-        BMS_Info_Write(&local_bms_info);
+        BMS_AcquireBMSInfoMutex();        // 获取互斥锁
+        BMS_GetBMSInfoPtr(info_ptr);      // 获取BMS信息指针
+        *info_ptr = local_bms_info;       // 更新最新BMS信息
+        BMS_CopyBMSInfo(&local_bms_info); // 复制最新BMS信息
+        BMS_ReleaseBMSInfoMutex();        // 释放互斥锁
 
-        BMS_PrintInfo();
+        BMS_PrintInfo(); // 打印最新BMS信息
         osDelay(1000);
     }
 }
 
-static void SOC_Calculation(void)
+static void SOC_Calculate(void)
 {
     // 简单的SOC计算示例，实际应用中应使用更复杂的算法
     uint16_t total_voltage = local_bms_info.pack_data.voltage;
@@ -65,7 +67,7 @@ static void SOC_Calculation(void)
         local_bms_info.soc = 0;
 }
 
-static void CellVoltageAnalysis(void)
+static void CellParameter_Calculate(void)
 {
     local_bms_info.cell_data.max_voltage = 0;
     local_bms_info.cell_data.min_voltage = 0xFFFF;
