@@ -1,5 +1,5 @@
-#ifndef __BSP_BQ76940_H
-#define __BSP_BQ76940_H
+#ifndef __DEV_BQ76940_H
+#define __DEV_BQ76940_H
 
 #include "main.h"
 
@@ -34,4 +34,4 @@ void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint8_t *_max_voltage_id
 void BQ76940_StartBalancing(uint8_t _cell_id);
 void BQ76940_StopBalancing(void);
 
-#endif /* __BSP_BQ76940_H */
+#endif /* __DEV_BQ76940_H */

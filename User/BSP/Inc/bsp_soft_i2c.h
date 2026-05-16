@@ -1,7 +1,7 @@
-#ifndef __DRV_I2C_H
-#define __DRV_I2C_H
+#ifndef __BSP_SOFT_I2C_H
+#define __BSP_SOFT_I2C_H
 
-#include "main.h"
+#include "stm32f1xx_hal.h"
 
 typedef struct
 {
@@ -14,4 +14,4 @@ typedef struct
 uint8_t I2C_Write(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t data_len);
 uint8_t I2C_Read(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t data_len);
 
-#endif /* __DRV_I2C_H */
+#endif /* __BSP_SOFT_I2C_H */

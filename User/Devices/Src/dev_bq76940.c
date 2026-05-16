@@ -1,12 +1,42 @@
-#include "bsp_bq76940.h"
+#include "dev_bq76940.h"
 #include "math.h"
 
-#include "drv_i2c.h"
-#include "usart.h"
+#include "bsp_soft_i2c.h"
+#include "bsp_usart.h"
 
-// 日志输出宏
-#define LOG_E(fmt, ...) printf("[ERROR] " fmt "\r\n", ##__VA_ARGS__)
-#define LOG_D(fmt, ...) printf("[DEBUG] " fmt "\r\n", ##__VA_ARGS__)
+/********************************* BQ769X0 DEBUG **************************/
+#define PRINTF Printf
+
+#define BQ76940_DEBUG_LEVEL 1 // 日志级别
+
+#if (BQ76940_DEBUG_LEVEL == 0)
+
+#define LOG_E(...) \
+    do             \
+    {              \
+    } while (0)
+#define LOG_D(...) \
+    do             \
+    {              \
+    } while (0)
+#define LOG_I(...) \
+    do             \
+    {              \
+    } while (0)
+
+#elif (BQ76940_DEBUG_LEVEL == 1)
+
+#define LOG_E(fmt, arg...) PRINTF("[BQ76940] [ERROR]" fmt, ##arg)
+#define LOG_D(fmt, arg...) PRINTF("[BQ76940] [DEBUG]" fmt, ##arg)
+#define LOG_I(fmt, arg...) PRINTF("[BQ76940] [INFO]" fmt, ##arg)
+
+#elif (BQ76940_DEBUG_LEVEL == 2)
+
+#define LOG_E(fmt, arg...) PRINTF("[BQ76940] [ERROR][%s:%s:%d] ", __FILE__, __FUNCTION__, __LINE__, fmt, ##arg)
+#define LOG_D(fmt, arg...) PRINTF("[BQ76940] [DEBUG][%s:%s:%d] ", __FILE__, __FUNCTION__, __LINE__, fmt, ##arg)
+#define LOG_I(fmt, arg...) PRINTF("[BQ76940] [INFO][%s:%s:%d] ", __FILE__, __FUNCTION__, __LINE__, fmt, ##arg)
+#endif
+/********************************************************************************/
 
 /* GPIO 引脚定义 */
 #define BQ76940_I2C_SCL_PIN GPIO_PIN_8
@@ -140,10 +170,10 @@ uint8_t BQ76940_Init(void)
     /* 3. 获取校准参数：ADC Gain = 377uV, ADC Offset = 45mV */
     if (BQ76940_GetCalibrationParams(&adc_gain, &adc_offset) != 1)
     {
-        LOG_E("Failed to read calibration parameters");
+        LOG_E("Failed to read calibration parameters\r\n");
         return 0;
     }
-    // LOG_D("Calibration parameters: ADC Gain = %duV, ADC Offset = %dmV", adc_gain, adc_offset);
+    // LOG_I("Calibration parameters: ADC Gain = %duV, ADC Offset = %dmV\r\n", adc_gain, adc_offset);
 
     /* 4. 配置SYS_CTRL1：启用ADC（及OV/UV保护）、外部热敏电阻 */
     BQ76940_WriteByteWithCRC(SYS_CTRL1, 0x18); // 0x18 = 00011000b
@@ -169,7 +199,7 @@ uint8_t BQ76940_Init(void)
     /* 11. 清除故障状态 */
     BQ76940_WriteByteWithCRC(SYS_STAT, 0xFF);
 
-    LOG_D("BQ76940 initialization completed successfully");
+    LOG_I("BQ76940 initialization completed successfully\r\n");
     return 1;
 }
 
@@ -250,7 +280,7 @@ static uint8_t BQ76940_WriteByteWithCRC(uint8_t reg_addr, uint8_t data)
 
     if (I2C_Write(&hi2c, reg_addr, send_buf, 2) != 1)
     {
-        LOG_E("Failed to write I2C data");
+        LOG_E("Failed to write I2C data\r\n");
         return 0;
     }
     return 1;
@@ -270,17 +300,17 @@ static uint8_t BQ76940_ReadByteWithCRC(uint8_t reg_addr, uint8_t *data)
 
     if (I2C_Read(&hi2c, reg_addr, recv_data, 2) != 1)
     {
-        LOG_E("Failed to read I2C data");
+        LOG_E("Failed to read I2C data\r\n");
         return 0; // Return an invalid value to indicate failure
     }
     // CRC校验：先构造CRC输入数据（设备地址 + 读位 + 寄存器地址 + 读到的数据）
     // crc_buf[0] = (BQ76940_DEVICE_ADDR << 1) | 0x01; // Read operation
     // crc_buf[1] = recv_data[0];                      // Received data
-    // LOG_D("Received byte: 0x%02X, CRC from device: 0x%02X", recv_data[0], recv_data[1]);
+    // LOG_I("Received byte: 0x%02X, CRC from device: 0x%02X\r\n", recv_data[0], recv_data[1]);
     // crc = CRC8_Calculate(crc_buf, 2);
     // if (crc != recv_data[1])
     // {
-    //     LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X", crc, recv_data[1]);
+    //     LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X\r\n", crc, recv_data[1]);
     //     // return 0;
     // }
 
@@ -300,13 +330,13 @@ static uint8_t BQ76940_ReadHalfWordWithCRC(uint8_t reg_addr, uint16_t *data)
 
     if (BQ76940_ReadByteWithCRC(reg_addr, &high_byte) != 1)
     {
-        LOG_E("Failed to read high byte");
+        LOG_E("Failed to read high byte\r\n");
         return 0; // Return an invalid value to indicate failure
     }
 
     if (BQ76940_ReadByteWithCRC(reg_addr + 1, &low_byte) != 1)
     {
-        LOG_E("Failed to read low byte");
+        LOG_E("Failed to read low byte\r\n");
         return 0; // Return an invalid value to indicate failure
     }
 
@@ -327,19 +357,19 @@ static uint8_t BQ76940_GetCalibrationParams(uint16_t *adc_gain, int8_t *adc_offs
 
     if (BQ76940_ReadByteWithCRC(ADCGAIN1, &gain1) != 1)
     {
-        LOG_E("Failed to read ADCGAIN1");
+        LOG_E("Failed to read ADCGAIN1\r\n");
         return 0;
     }
 
     if (BQ76940_ReadByteWithCRC(ADCGAIN2, &gain2) != 1)
     {
-        LOG_E("Failed to read ADCGAIN2");
+        LOG_E("Failed to read ADCGAIN2\r\n");
         return 0;
     }
 
     if (BQ76940_ReadByteWithCRC(ADCOFFSET, &offset) != 1)
     {
-        LOG_E("Failed to read ADCOFFSET");
+        LOG_E("Failed to read ADCOFFSET\r\n");
         return 0;
     }
 
@@ -465,7 +495,7 @@ uint8_t BQ76940_ReadCellVoltages(uint16_t _voltages[], uint16_t *_total_voltage)
         }
         else
         {
-            LOG_E("Failed to read voltage for cell %d", i + 1);
+            LOG_E("Failed to read voltage for cell %d\r\n", i + 1);
             return 0; // Return failure if any cell voltage read fails
         }
     }
@@ -488,12 +518,12 @@ uint8_t BQ76940_ReadCurrent(int16_t *_current)
     {
         cc_val = cc_adc_val * 8.44;        // 转换为库仑计数值，单位：uV
         *_current = (int16_t)(cc_val / 4); // 转换为电流值，单位：mA（采样电阻为4mΩ）
-        // LOG_D("Raw ADC value: %d, CC value: %.2f uV, Current: %d mA", cc_adc_val, cc_val, *current);
+        // LOG_D("Raw ADC value: %d, CC value: %.2f uV, Current: %d mA\r\n", cc_adc_val, cc_val, *current);
         return 1; // Success
     }
     else
     {
-        LOG_E("Failed to read current");
+        LOG_E("Failed to read current\r\n");
         return 0; // Return failure
     }
 }
@@ -523,13 +553,13 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
         temp_kelvin = 1 / (1 / T2 + (log(Rt / Rp)) / Bx);
         *_temperature = (int16_t)((temp_kelvin - Ka + 0.5) * 10); // +0.5 的误差矫正
 
-        // LOG_D("Raw ADC value: %d, V_tsx: %.2f mV, Rt: %.2f ohms, TempKelvin: %.2f, Temperature: %d C",
+        // LOG_D("Raw ADC value: %d, V_tsx: %.2f mV, Rt: %.2f ohms, TempKelvin: %.2f, Temperature: %d\r\n",
         //       temp_adc_val, V_tsx, Rt, temp_kelvin, *_temperature);
         return 1; // Success
     }
     else
     {
-        LOG_E("Failed to read temperature");
+        LOG_E("Failed to read temperature\r\n");
         return 0; // Return failure
     }
 }
@@ -566,7 +596,7 @@ void BQ76940_StartBalancing(uint8_t _cell_id)
 {
     if (_cell_id < 1 || _cell_id > 15)
     {
-        LOG_E("Invalid cell ID for balancing: %d", _cell_id);
+        LOG_E("Invalid cell ID for balancing: %d\r\n", _cell_id);
         return;
     }
 
@@ -590,7 +620,7 @@ void BQ76940_StartBalancing(uint8_t _cell_id)
         bal_bit_mask = 1 << (_cell_id - 11);
     }
 
-    LOG_D("Balancing cell %d: Write 0x%02X to register 0x%02X", _cell_id, bal_bit_mask, bal_reg_addr);
+    LOG_D("Balancing cell %d: Write 0x%02X to register 0x%02X\r\n", _cell_id, bal_bit_mask, bal_reg_addr);
     // 启动均衡
     BQ76940_WriteByteWithCRC(bal_reg_addr, bal_bit_mask);
 }

@@ -1,4 +1,4 @@
-#include "bms_global.h"
+#include "BMSInfo.h"
 
 // BMS信息结构体变量
 static BMS_Info_t bms_info = {0};
@@ -35,11 +35,11 @@ void BMS_CopyBMSInfo(BMS_Info_t *dest)
  * @brief 获取BMS信息指针至目标内存地址
  * @param dest 指向目标BMS_Info_t结构体的指针
  */
-void BMS_GetBMSInfoPtr(BMS_Info_t *dest)
+void BMS_GetBMSInfoPtr(BMS_Info_t **dest)
 {
-    if (&bms_info != NULL)
+    if (dest != NULL)
     {
-        dest = &bms_info;
+        *dest = &bms_info;
     }
 }
 

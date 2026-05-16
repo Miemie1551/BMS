@@ -1,17 +1,25 @@
 #include "StateControlTask.h"
 #include "cmsis_os.h"
-#include "usart.h"
 
-#include "bms_global.h"
-#include "bsp_bq76940.h"
+#include "BMSInfo.h"
 
-#define LOG_E(fmt, ...) printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOG_D(fmt, ...) printf("[DEBUG] " fmt, ##__VA_ARGS__)
+#include "bsp_usart.h"
+#include "dev_bq76940.h"
+
+#define LOG_ENABLE 1
+#if LOG_ENABLE
+#define LOG_E(fmt, ...) Printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOG_D(fmt, ...) Printf("[DEBUG] " fmt, ##__VA_ARGS__)
+#else
+#define LOG_E(...)
+#define LOG_D(...)
+#endif
 
 #define STATE_CHECK_PERIOD_MS 1000
 
 static BMS_Info_t info;
 static BMS_Info_t *info_ptr = NULL;
+static BMS_State_t last_state = BMS_STATE_STANDBY;
 
 static void BMS_StandbyStateHandler(void);
 static void BMS_ChargingStateHandler(void);
@@ -30,6 +38,7 @@ void StateControlTask(void *argument)
         // 获取当前电池信息
         BMS_AcquireBMSInfoMutex(); // 获取互斥锁
         BMS_CopyBMSInfo(&info);    // 复制最新BMS信息
+        last_state = info.state;   // 获取上次状态
         BMS_ReleaseBMSInfoMutex(); // 释放互斥锁
 
         // 状态机转换
@@ -49,11 +58,14 @@ void StateControlTask(void *argument)
             break;
         }
 
-        // 更新状态
-        BMS_AcquireBMSInfoMutex();    // 获取互斥锁
-        BMS_GetBMSInfoPtr(info_ptr);  // 获取最新BMS信息指针
-        info_ptr->state = info.state; // 更新状态
-        BMS_ReleaseBMSInfoMutex();    // 释放互斥锁
+        // 只有状态改变时才更新状态
+        if (last_state != info.state)
+        {
+            BMS_AcquireBMSInfoMutex();    // 获取互斥锁
+            BMS_GetBMSInfoPtr(&info_ptr); // 获取最新BMS信息指针
+            info_ptr->state = info.state; // 更新状态
+            BMS_ReleaseBMSInfoMutex();    // 释放互斥锁
+        }
 
         osDelay(STATE_CHECK_PERIOD_MS);
     }
@@ -71,8 +83,9 @@ static void BMS_StandbyStateHandler(void)
         info.state = BMS_STATE_FAULT;
         BMS_EnterFaultMode();
     }
-    // 检测充电或放电请求
-    else if (info.pack_data.current > BMS_CHARGING_THRESHOLD)
+    // 检测充电请求：电池电压低于阈值且电流超过阈值
+    else if (info.pack_data.current > BMS_CHARGING_THRESHOLD &&
+             info.cell_data.max_voltage <= (BMS_CELL_OV_THRESHOLD - 100))
     {
         info.state = BMS_STATE_CHARGING;
     }
@@ -91,7 +104,8 @@ static void BMS_ChargingStateHandler(void)
         BMS_EnterFaultMode();
     }
     // 充电完成或停止放电
-    else if (info.soc >= 100 || info.pack_data.current < BMS_CHARGING_THRESHOLD)
+    else if (info.pack_data.current < BMS_CHARGING_THRESHOLD ||
+             info.cell_data.max_voltage >= BMS_CELL_OV_THRESHOLD)
     {
         info.state = BMS_STATE_STANDBY;
         // BMS_EnterStandbyMode();
@@ -107,7 +121,8 @@ static void BMS_DischargingStateHandler(void)
         BMS_EnterFaultMode();
     }
     // 放电完成或停止充电
-    else if (info.soc <= 0 || info.pack_data.current > BMS_DISCHARGING_THRESHOLD)
+    else if (info.pack_data.current > BMS_DISCHARGING_THRESHOLD ||
+             info.soc <= 0)
     {
         info.state = BMS_STATE_STANDBY;
         // BMS_EnterStandbyMode();

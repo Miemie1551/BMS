@@ -1,14 +1,14 @@
 #include "DataAcqTask.h"
 #include "cmsis_os2.h"
 
-#include "bms_global.h"
+#include "BMSInfo.h"
 
-#include "usart.h"
-#include "bsp_bq76940.h"
+#include "bsp_usart.h"
+#include "dev_bq76940.h"
 
-#define LOG_I(fmt, ...) printf("[INFO] " fmt, ##__VA_ARGS__)
-#define LOG_D(fmt, ...) printf("[DEBUG] " fmt, ##__VA_ARGS__)
-#define LOG_E(fmt, ...) printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOG_I(fmt, ...) Printf("[INFO] " fmt, ##__VA_ARGS__)
+#define LOG_D(fmt, ...) Printf("[DEBUG] " fmt, ##__VA_ARGS__)
+#define LOG_E(fmt, ...) Printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 static BMS_Info_t local_bms_info;
 static BMS_Info_t *info_ptr = NULL;
@@ -41,14 +41,18 @@ void DataAcqTask(void *argument)
         {
             LOG_E("Failed to read temperature\r\n");
         }
-        SOC_Calculate(); // 计算SOC
+        SOC_Calculate();           // 计算SOC
         CellParameter_Calculate(); // 计算电芯参数
 
-        BMS_AcquireBMSInfoMutex();        // 获取互斥锁
-        BMS_GetBMSInfoPtr(info_ptr);      // 获取BMS信息指针
-        *info_ptr = local_bms_info;       // 更新最新BMS信息
-        BMS_CopyBMSInfo(&local_bms_info); // 复制最新BMS信息
-        BMS_ReleaseBMSInfoMutex();        // 释放互斥锁
+        BMS_AcquireBMSInfoMutex();    // 获取互斥锁
+        BMS_GetBMSInfoPtr(&info_ptr); // 获取BMS信息指针
+        local_bms_info.state = info_ptr->state;// 获取系统状态
+        local_bms_info.fault = info_ptr->fault;// 获取故障类型
+
+        info_ptr->cell_data = local_bms_info.cell_data; // 更新电芯数据
+        info_ptr->pack_data = local_bms_info.pack_data; // 更新电池数据
+        info_ptr->soc = local_bms_info.soc;             // 更新SOC
+        BMS_ReleaseBMSInfoMutex();                      // 释放互斥锁
 
         BMS_PrintInfo(); // 打印最新BMS信息
         osDelay(1000);

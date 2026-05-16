@@ -1,4 +1,4 @@
-#include "drv_i2c.h"
+#include "bsp_soft_i2c.h"
 #include "cmsis_os.h"
 
 // I2C延时时间，单位：微秒

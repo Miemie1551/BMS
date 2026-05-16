@@ -1,5 +1,5 @@
-#ifndef __BMS_GLOBAL_H
-#define __BMS_GLOBAL_H
+#ifndef __BMSINFO_H
+#define __BMSINFO_H
 
 #include "main.h"
 #include "cmsis_os.h"
@@ -52,8 +52,8 @@ typedef enum
     FAULT_CHG_OC = 0x0010,        // 充电过流
     FAULT_DSG_OC = 0x0020,        // 放电过流
     FAULT_SHORT_CIRCUIT = 0x0040, // 短路
-    FAULT_OVERTEMP = 0x0080,   // 过温
-    
+    FAULT_OVERTEMP = 0x0080,      // 过温
+
     FAULT_UNDERTEMP = 0x01000, // 欠温
     FAULT_AFE_COMM = 0x02000,  // AFE通信故障
 } BMS_Fault_t;
@@ -92,8 +92,8 @@ typedef struct
 
 void BMS_Info_Init(void);
 void BMS_CopyBMSInfo(BMS_Info_t *dest);
-void BMS_GetBMSInfoPtr(BMS_Info_t *dest);
+void BMS_GetBMSInfoPtr(BMS_Info_t **dest);
 void BMS_AcquireBMSInfoMutex(void);
 void BMS_ReleaseBMSInfoMutex(void);
 
-#endif /* __BMS_GLOBAL_H */
+#endif /* __BMSINFO_H */

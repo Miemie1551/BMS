@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../User/APP;..\User\Protocol;..\User\Middleware;../User/BSP;../User/Drivers</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;..\User\Application\Inc;..\User\Components\Inc;..\User\Protocols\Inc;..\User\Devices\Inc;..\User\BSP\Inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -572,60 +572,63 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>User/APP</GroupName>
+          <GroupName>User/Application</GroupName>
           <Files>
-            <File>
-              <FileName>bms_global.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\User\APP\bms_global.c</FilePath>
-            </File>
             <File>
               <FileName>TaskInit.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\TaskInit.c</FilePath>
+              <FilePath>..\User\Application\Src\TaskInit.c</FilePath>
+            </File>
+            <File>
+              <FileName>BMSInfo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\Application\Src\BMSInfo.c</FilePath>
             </File>
             <File>
               <FileName>FaultProtectTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\FaultProtectTask.c</FilePath>
+              <FilePath>..\User\Application\Src\FaultProtectTask.c</FilePath>
             </File>
             <File>
               <FileName>DataAcqTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\DataAcqTask.c</FilePath>
+              <FilePath>..\User\Application\Src\DataAcqTask.c</FilePath>
             </File>
             <File>
               <FileName>StateControlTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\StateControlTask.c</FilePath>
+              <FilePath>..\User\Application\Src\StateControlTask.c</FilePath>
             </File>
             <File>
               <FileName>BatteryGaugeTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\BatteryGaugeTask.c</FilePath>
+              <FilePath>..\User\Application\Src\BatteryGaugeTask.c</FilePath>
             </File>
             <File>
               <FileName>CommTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\CommTask.c</FilePath>
+              <FilePath>..\User\Application\Src\CommTask.c</FilePath>
             </File>
             <File>
               <FileName>BalanceControlTask.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\APP\BalanceControlTask.c</FilePath>
+              <FilePath>..\User\Application\Src\BalanceControlTask.c</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>User/Protocol</GroupName>
+          <GroupName>User/Components</GroupName>
         </Group>
         <Group>
-          <GroupName>User/Middleware</GroupName>
+          <GroupName>User/Protocols</GroupName>
+        </Group>
+        <Group>
+          <GroupName>User/Drivers</GroupName>
           <Files>
             <File>
-              <FileName>log.c</FileName>
+              <FileName>dev_bq76940.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\Middleware\log.c</FilePath>
+              <FilePath>..\User\Devices\Src\dev_bq76940.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -633,19 +636,14 @@
           <GroupName>User/BSP</GroupName>
           <Files>
             <File>
-              <FileName>bsp_bq76940.c</FileName>
+              <FileName>bsp_soft_i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\BSP\bsp_bq76940.c</FilePath>
+              <FilePath>..\User\BSP\Src\bsp_soft_i2c.c</FilePath>
             </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>User/Drivers</GroupName>
-          <Files>
             <File>
-              <FileName>drv_i2c.c</FileName>
+              <FileName>bsp_usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\Drivers\drv_i2c.c</FilePath>
+              <FilePath>..\User\BSP\Src\bsp_usart.c</FilePath>
             </File>
           </Files>
         </Group>
