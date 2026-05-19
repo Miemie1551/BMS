@@ -4,6 +4,7 @@
 #include "FaultProtectTask.h"
 #include "StateControlTask.h"
 #include "BatteryGaugeTask.h"
+#include "BalanceControlTask.h"
 
 #include "bsp_usart.h"
 #include "dev_bq76940.h"
@@ -63,6 +64,7 @@ static void CellParameter_Calculate(void)
         if (voltage > bms_data_acq.max_voltage)
         {
             bms_data_acq.max_voltage = voltage;
+            bms_data_acq.max_voltage_index = i;
         }
         if (voltage < bms_data_acq.min_voltage)
         {
@@ -104,12 +106,16 @@ static void BMS_PrintInfo(void)
     LOG_I("Cell9 Voltage: %d.%03dV\r\n\r\n", bms_data_acq.cell_voltages[8] / 1000, bms_data_acq.cell_voltages[8] % 1000);
 
     LOG_I("CHG: %d; DSG: %d\r\n", bms_fet_state.state_CHG, bms_fet_state.state_DSG);
+    if (bms_balance_info.balance_status == BMS_BALANCE_STATUS_RUNNING)
+    {
+        LOG_I("Balance Cell Index: %d\r\n", bms_balance_info.balance_cell_index);
+    }
     LOG_I("/***********************************************/\r\n\r\n");
 }
 
 static void BMS_StateOutput(void)
 {
-    switch (bms_state)
+    switch (bms_sys_state)
     {
     case BMS_STATE_STANDBY:
         LOG_I("BMS State: Standby\r\n");

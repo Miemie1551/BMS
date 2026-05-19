@@ -84,7 +84,7 @@ void FaultProtectTask(void *argument)
 
 static void BMS_ProtectSWMonitor(void)
 {
-    switch (bms_state)
+    switch (bms_sys_state)
     {
     case BMS_STATE_CHARGING:
         // 充电过流保护

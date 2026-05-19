@@ -38,4 +38,22 @@
 #define BMS_START_CHARGING_SOC 990   // 开始充电SOC阈值
 #define BMS_START_DISCHARGING_SOC 10 // 开始放电SOC阈值
 
+//
+typedef enum
+{
+    BMS_DISABLE = 0, // 禁用
+    BMS_ENABLE = 1,  // 使能
+} BMS_State_t;
+
+// 用户配置
+typedef struct
+{
+    BMS_State_t charge;    // 充电使能
+    BMS_State_t discharge; // 放电使能
+    BMS_State_t balance;   // 均衡使能
+    BMS_State_t auto_mode; // 自动模式
+} BMS_UserConfig_t;
+
+extern BMS_UserConfig_t bms_user_config;
+
 #endif /* __BMSINFO_H */

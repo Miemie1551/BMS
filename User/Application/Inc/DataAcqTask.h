@@ -16,6 +16,7 @@ typedef struct
     uint16_t min_voltage;      // 最小电压（mV）
     uint16_t avg_voltage;      // 平均电压（mV）
     uint16_t max_voltage_diff; // 最大压差（mV）
+    uint8_t max_voltage_index; // 最大电压索引
 } BMS_DataAcq_t;
 
 extern BMS_DataAcq_t bms_data_acq;

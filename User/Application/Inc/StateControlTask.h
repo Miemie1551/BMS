@@ -11,7 +11,7 @@ typedef enum
     BMS_STATE_CHARGING = 1,
     BMS_STATE_DISCHARGING = 2,
     BMS_STATE_FAULT = 3
-} BMS_State_t;
+} BMS_SysState_t;
 
 typedef struct
 {
@@ -19,7 +19,7 @@ typedef struct
     uint8_t state_DSG;
 } BMS_FETState_t;
 
-extern BMS_State_t bms_state;
+extern BMS_SysState_t bms_sys_state;
 extern BMS_FETState_t bms_fet_state;
 
 void StateControlTask(void *argument);

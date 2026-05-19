@@ -23,7 +23,7 @@
 #define BMS_CHARGING_THRESHOLD 50     // 充电电流阈值（mA）
 #define BMS_DISCHARGING_THRESHOLD -50 // 放电电流阈值（mA）
 
-BMS_State_t bms_state = BMS_STATE_STANDBY;
+BMS_SysState_t bms_sys_state = BMS_STATE_STANDBY;
 BMS_FETState_t bms_fet_state = {1, 1};
 
 static void BMS_StandbyStateHandler(void);
@@ -38,11 +38,11 @@ void StateControlTask(void *argument)
         // 检测故障
         if (bms_protect_alert != FLAG_ALERT_NONE)
         {
-            bms_state = BMS_STATE_FAULT;
+            bms_sys_state = BMS_STATE_FAULT;
         }
 
         // 状态机转换
-        switch (bms_state)
+        switch (bms_sys_state)
         {
         case BMS_STATE_STANDBY:
             BMS_StandbyStateHandler();
@@ -71,19 +71,20 @@ static void BMS_StandbyStateHandler(void)
     // 充电状态判断：充电电流超过预设阈值
     if (bms_data_acq.current > BMS_CHARGING_THRESHOLD)
     {
-        bms_state = BMS_STATE_CHARGING;
+        bms_sys_state = BMS_STATE_CHARGING;
     }
     // 放电状态判断：放电电流低于预设阈值
     else if (bms_data_acq.current < BMS_DISCHARGING_THRESHOLD)
     {
-        bms_state = BMS_STATE_DISCHARGING;
+        bms_sys_state = BMS_STATE_DISCHARGING;
     }
 
     static uint8_t charge_count = 0;    // 充电请求计数器
     static uint8_t discharge_count = 0; // 放电请求计数器
 
     /* 根据充放电开关状态和电池SOC阈值判断是否需要充电或放电 */
-    if (bms_fet_state.state_CHG == 0 && bms_battery_gauge_data.soc < BMS_START_CHARGING_SOC)
+    if (bms_fet_state.state_CHG == 0 &&
+        bms_battery_gauge_data.soc < BMS_START_CHARGING_SOC)
     {
         charge_count++;
         if (charge_count >= 3)
@@ -92,7 +93,13 @@ static void BMS_StandbyStateHandler(void)
             BMS_ControlCharge(1);
         }
     }
-    if (bms_fet_state.state_DSG == 0 && bms_battery_gauge_data.soc > BMS_START_DISCHARGING_SOC)
+    else
+    {
+        charge_count = 0;
+    }
+
+    if (bms_fet_state.state_DSG == 0 &&
+        bms_battery_gauge_data.soc > BMS_START_DISCHARGING_SOC)
     {
         discharge_count++;
         if (discharge_count >= 3)
@@ -100,6 +107,10 @@ static void BMS_StandbyStateHandler(void)
             discharge_count = 0;
             BMS_ControlDischarge(1);
         }
+    }
+    else
+    {
+        discharge_count = 0;
     }
 }
 
@@ -110,7 +121,7 @@ static void BMS_ChargingStateHandler(void)
     // 停止充电判断：电流低于阈值
     if (bms_data_acq.current < BMS_CHARGING_THRESHOLD)
     {
-        bms_state = BMS_STATE_STANDBY;
+        bms_sys_state = BMS_STATE_STANDBY;
     }
     // 充电完成判断：电池SOC超过满电阈值
     else if (bms_battery_gauge_data.soc >= BMS_STOP_CHARGING_SOC)
@@ -119,9 +130,13 @@ static void BMS_ChargingStateHandler(void)
         if (charge_completed_count >= 3)
         {
             charge_completed_count = 0;
-            bms_state = BMS_STATE_STANDBY;
+            bms_sys_state = BMS_STATE_STANDBY;
             BMS_ControlCharge(0);
         }
+    }
+    else
+    {
+        charge_completed_count = 0;
     }
 }
 
@@ -132,7 +147,7 @@ static void BMS_DischargingStateHandler(void)
     // 停止放电判断：电流低于阈值
     if (bms_data_acq.current > BMS_DISCHARGING_THRESHOLD)
     {
-        bms_state = BMS_STATE_STANDBY;
+        bms_sys_state = BMS_STATE_STANDBY;
     }
     // 放电完成判断：电池SOC低于空电阈值
     else if (bms_battery_gauge_data.soc <= BMS_STOP_DISCHARGING_SOC)
@@ -141,9 +156,13 @@ static void BMS_DischargingStateHandler(void)
         if (discharge_completed_count >= 3)
         {
             discharge_completed_count = 0;
-            bms_state = BMS_STATE_STANDBY;
+            bms_sys_state = BMS_STATE_STANDBY;
             BMS_ControlDischarge(0);
         }
+    }
+    else
+    {
+        discharge_completed_count = 0;
     }
 }
 
@@ -152,7 +171,7 @@ static void BMS_FaultStateHandler(void)
     // 故障状态保持，等待故障清除
     if (bms_protect_alert == FLAG_ALERT_NONE)
     {
-        bms_state = BMS_STATE_STANDBY;
+        bms_sys_state = BMS_STATE_STANDBY;
     }
 }
 
