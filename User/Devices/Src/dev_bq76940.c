@@ -116,30 +116,26 @@
 #define CHG_ON 0x01 << 0
 
 // 过压和欠压保护阈值（单位：mV）
-#define OV_THRESHOLD 4250
-#define UV_THRESHOLD 3200
-
-// 电池单体数量
-#define CELL_TOTAL 9
+#define OV_THRESHOLD 4200 // OV范围：3.15~4.70V     3136~4674mV
+#define UV_THRESHOLD 3100 // UV范围：1.58~3.10V     1589~3125mV
 
 // 校准参数
-static uint16_t adc_gain = 0;
-static int8_t adc_offset = 0;
+static uint16_t adc_gain = 0; // 377uV
+static int8_t adc_offset = 0; // 45mV
 
 // I2C 句柄定义
-static I2C_Handle_t hi2c =
-    {
-        .I2C_Port = BQ76940_I2C_SCL_PORT,
-        .SCL_Pin = BQ76940_I2C_SCL_PIN,
-        .SDA_Pin = BQ76940_I2C_SDA_PIN,
-        .DeviceAddress = BQ76940_DEVICE_ADDR};
+static I2C_Handle_t hi2c = {
+    .I2C_Port = BQ76940_I2C_SCL_PORT,
+    .SCL_Pin = BQ76940_I2C_SCL_PIN,
+    .SDA_Pin = BQ76940_I2C_SDA_PIN,
+    .DeviceAddress = BQ76940_DEVICE_ADDR};
 
 // 电芯id索引映射表
-static const uint8_t cell_id_index_map[CELL_TOTAL] =
-    {1, 2,
-     5, 6, 7,
-     10, 11, 12,
-     15};
+const uint8_t cell_id_index_map[CELL_TOTAL] = {
+    1, 2,
+    5, 6, 7,
+    10, 11, 12,
+    15};
 
 // 私有函数声明
 static void BQ76940_GPIOInit(void);
@@ -190,7 +186,7 @@ uint8_t BQ76940_Init(void)
     /* 8. 配置PROTECT3：欠压延迟：4s，过压延迟：4s */
     BQ76940_WriteByteWithCRC(PROTECT3, 0x60); // 0x60 = 01100000b
 
-    /* 9. 配置过压和欠压保护阈值：4350mV，3200mV */
+    /* 9. 配置过压和欠压保护阈值：4250mV，3200mV */
     BQ76940_ConfigureTRIP();
 
     /* 10. 配置CC_CFG：默认最优配置 */
@@ -387,8 +383,8 @@ static void BQ76940_ConfigureTRIP(void)
     uint16_t ov_trip_full = 0, uv_trip_full = 0;
     uint8_t ov_trip = 0, uv_trip = 0;
 
-    ov_trip_full = (OV_THRESHOLD - adc_offset) / adc_gain;
-    uv_trip_full = (UV_THRESHOLD - adc_offset) / adc_gain;
+    ov_trip_full = (OV_THRESHOLD - adc_offset) / (adc_gain * 0.001f);
+    uv_trip_full = (UV_THRESHOLD - adc_offset) / (adc_gain * 0.001f);
 
     ov_trip = (ov_trip_full >> 4) & 0xFF;
     uv_trip = (uv_trip_full >> 4) & 0xFF;
@@ -412,9 +408,19 @@ uint8_t BQ76940_GetSystemStatus(uint8_t *status_bits)
  * @param bit_mask 要清除的故障位掩码
  * @return 清除结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_ClearFaults(SYS_STAT_Bits bit_mask)
+uint8_t BQ76940_ClearFaults(uint8_t bit_mask)
 {
     return BQ76940_WriteByteWithCRC(SYS_STAT, bit_mask);
+}
+
+/**
+ * @brief 获取系统控制2寄存器的值
+ * @param ctrl2_bits 存储系统控制2寄存器值的指针
+ * @return 获取结果（1表示成功，0表示失败）
+ */
+uint8_t BQ76940_GetSystemControl2(uint8_t *ctrl2_bits)
+{
+    return BQ76940_ReadByteWithCRC(SYS_CTRL2, ctrl2_bits);
 }
 
 /**
@@ -479,19 +485,17 @@ uint8_t BQ76940_DisableCharging(void)
  * @param total_voltage 存储总电压值的指针
  * @return 读取结果（1表示成功，0表示失败）
  */
-uint8_t BQ76940_ReadCellVoltages(uint16_t _voltages[], uint16_t *_total_voltage)
+uint8_t BQ76940_ReadCellVoltages(uint16_t _voltages[])
 {
     uint8_t cell_index = 0;
     uint16_t voltage_val = 0;
-    uint16_t total_voltage_val = 0;
 
     for (uint8_t i = 0; i < CELL_TOTAL; i++)
     {
         cell_index = cell_id_index_map[i] - 1;
         if (BQ76940_ReadHalfWordWithCRC(VC1_HI + (cell_index * 2), &voltage_val) == 1)
         {
-            _voltages[i] = (voltage_val * adc_gain) / 1000 + adc_offset; // 转换为实际电压值
-            total_voltage_val += _voltages[i];
+            _voltages[i] = (voltage_val * adc_gain) * 0.001f + adc_offset; // 转换为实际电压值
         }
         else
         {
@@ -500,7 +504,29 @@ uint8_t BQ76940_ReadCellVoltages(uint16_t _voltages[], uint16_t *_total_voltage)
         }
     }
 
-    *_total_voltage = total_voltage_val;
+    return 1; // Success
+}
+
+/**
+ * @brief 读取所有电池单体电压
+ * @param voltages 存储电压值的数组指针，长度至少为9
+ * @param total_voltage 存储总电压值的指针
+ * @return 读取结果（1表示成功，0表示失败）
+ */
+uint8_t BQ76940_ReadBatteryVoltage(uint16_t *_voltage)
+{
+    uint16_t voltage_val = 0;
+
+    if (BQ76940_ReadHalfWordWithCRC(BAT_HI, &voltage_val) == 1)
+    {
+        *_voltage = 4 * adc_gain * voltage_val * 0.001f + (CELL_TOTAL * adc_offset);
+    }
+    else
+    {
+        LOG_E("Failed to read battery voltage\r\n");
+        return 0; // Return failure if any cell voltage read fails
+    }
+
     return 1; // Success
 }
 
@@ -516,7 +542,7 @@ uint8_t BQ76940_ReadCurrent(int16_t *_current)
 
     if (BQ76940_ReadHalfWordWithCRC(CC_HI, (uint16_t *)&cc_adc_val) == 1)
     {
-        cc_val = cc_adc_val * 8.44;        // 转换为库仑计数值，单位：uV
+        cc_val = cc_adc_val * 8.44f;       // 转换为库仑计数值，单位：uV
         *_current = (int16_t)(cc_val / 4); // 转换为电流值，单位：mA（采样电阻为4mΩ）
         // LOG_D("Raw ADC value: %d, CC value: %.2f uV, Current: %d mA\r\n", cc_adc_val, cc_val, *current);
         return 1; // Success
@@ -548,10 +574,10 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
 
     if (BQ76940_ReadHalfWordWithCRC(TS1_HI, &temp_adc_val) == 1)
     {
-        V_tsx = (temp_adc_val * 382) / 1000.0f;
-        Rt = (10000 * V_tsx) / (3300 - V_tsx);
+        V_tsx = (temp_adc_val * 382) * 0.001f;
+        Rt = (10000 * V_tsx) / (3300.0f - V_tsx);
         temp_kelvin = 1 / (1 / T2 + (log(Rt / Rp)) / Bx);
-        *_temperature = (int16_t)((temp_kelvin - Ka + 0.5) * 10); // +0.5 的误差矫正
+        *_temperature = (int16_t)((temp_kelvin - Ka + 0.5f) * 10); // +0.5 的误差矫正
 
         // LOG_D("Raw ADC value: %d, V_tsx: %.2f mV, Rt: %.2f ohms, TempKelvin: %.2f, Temperature: %d\r\n",
         //       temp_adc_val, V_tsx, Rt, temp_kelvin, *_temperature);
@@ -562,29 +588,6 @@ uint8_t BQ76940_ReadTemperature(int16_t *_temperature)
         LOG_E("Failed to read temperature\r\n");
         return 0; // Return failure
     }
-}
-
-/**
- * @brief 查找电芯最高电压ID
- * @param _voltages 电压数组
- * @param _max_voltage_id 存储最高电压ID的指针
- * @retval None
- */
-void BQ76940_FindCellMaxVoltageID(uint16_t _voltages[], uint8_t *_max_voltage_id)
-{
-    uint16_t max_voltage = 0;
-    uint8_t max_voltage_index = 0;
-
-    for (uint8_t i = 0; i < CELL_TOTAL; i++)
-    {
-        if (_voltages[i] > max_voltage)
-        {
-            max_voltage = _voltages[i];
-            max_voltage_index = i;
-        }
-    }
-    // 将单体索引转换为电池索引
-    *_max_voltage_id = cell_id_index_map[max_voltage_index];
 }
 
 /**
@@ -626,12 +629,29 @@ void BQ76940_StartBalancing(uint8_t _cell_id)
 }
 
 /**
- * @brief 停止均衡全部电芯
+ * @brief 停止均衡指定电芯
+ * @param _cell_id 电芯ID（1-15)
  * @retval None
  */
-void BQ76940_StopBalancing(void)
+void BQ76940_StopBalancing(uint8_t _cell_id)
 {
-    BQ76940_WriteByteWithCRC(CELLBAL1, 0);
-    BQ76940_WriteByteWithCRC(CELLBAL2, 0);
-    BQ76940_WriteByteWithCRC(CELLBAL3, 0);
+    if (_cell_id < 1 || _cell_id > 15)
+    {
+        LOG_E("Invalid cell ID for balancing: %d\r\n", _cell_id);
+        return;
+    }
+
+    // 根据cell_id计算对应的均衡寄存器地址和位掩码
+    if (_cell_id <= 5)
+    {
+        BQ76940_WriteByteWithCRC(CELLBAL1, 0);
+    }
+    else if (_cell_id <= 10)
+    {
+        BQ76940_WriteByteWithCRC(CELLBAL2, 0);
+    }
+    else
+    {
+        BQ76940_WriteByteWithCRC(CELLBAL3, 0);
+    }
 }

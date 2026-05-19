@@ -1,7 +1,9 @@
 #include "DataAcqTask.h"
 #include "cmsis_os2.h"
 
-#include "BMSInfo.h"
+#include "FaultProtectTask.h"
+#include "StateControlTask.h"
+#include "BatteryGaugeTask.h"
 
 #include "bsp_usart.h"
 #include "dev_bq76940.h"
@@ -10,124 +12,104 @@
 #define LOG_D(fmt, ...) Printf("[DEBUG] " fmt, ##__VA_ARGS__)
 #define LOG_E(fmt, ...) Printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
-static BMS_Info_t local_bms_info;
-static BMS_Info_t *info_ptr = NULL;
+#define DATA_ACQ_TASK_PERIOD_MS 1000
 
-static void SOC_Calculate(void);
+BMS_DataAcq_t bms_data_acq;
+
 static void CellParameter_Calculate(void);
-
 static void BMS_PrintInfo(void);
 static void BMS_StateOutput(void);
-static void BMS_FaultOutput(void);
+static void BMS_AlertOutput(void);
 
 // 电芯电压/电流/温度采样
 void DataAcqTask(void *argument)
 {
-    BMS_Info_Init();
-    BQ76940_Init();
-
     for (;;)
     {
-        if (BQ76940_ReadCellVoltages(local_bms_info.cell_data.voltages, &local_bms_info.pack_data.voltage) != 1)
+        if (BQ76940_ReadCellVoltages(bms_data_acq.cell_voltages) != 1)
         {
             LOG_E("Failed to read cell voltages\r\n");
         }
-        if (BQ76940_ReadCurrent(&local_bms_info.pack_data.current) != 1)
+        if (BQ76940_ReadBatteryVoltage(&bms_data_acq.battery_voltage) != 1)
+        {
+            LOG_E("Failed to read battery voltage\r\n");
+        }
+        if (BQ76940_ReadCurrent(&bms_data_acq.current) != 1)
         {
             LOG_E("Failed to read current\r\n");
         }
-
-        if (BQ76940_ReadTemperature(&local_bms_info.pack_data.temperature) != 1)
+        if (BQ76940_ReadTemperature(&bms_data_acq.temperature) != 1)
         {
             LOG_E("Failed to read temperature\r\n");
         }
-        SOC_Calculate();           // 计算SOC
-        CellParameter_Calculate(); // 计算电芯参数
 
-        BMS_AcquireBMSInfoMutex();    // 获取互斥锁
-        BMS_GetBMSInfoPtr(&info_ptr); // 获取BMS信息指针
-        local_bms_info.state = info_ptr->state;// 获取系统状态
-        local_bms_info.fault = info_ptr->fault;// 获取故障类型
+        CellParameter_Calculate();
+        BMS_PrintInfo();
 
-        info_ptr->cell_data = local_bms_info.cell_data; // 更新电芯数据
-        info_ptr->pack_data = local_bms_info.pack_data; // 更新电池数据
-        info_ptr->soc = local_bms_info.soc;             // 更新SOC
-        BMS_ReleaseBMSInfoMutex();                      // 释放互斥锁
-
-        BMS_PrintInfo(); // 打印最新BMS信息
         osDelay(1000);
     }
 }
 
-static void SOC_Calculate(void)
-{
-    // 简单的SOC计算示例，实际应用中应使用更复杂的算法
-    uint16_t total_voltage = local_bms_info.pack_data.voltage;
-    if (total_voltage >= BMS_PACK_MAX_VOLTAGE)
-        local_bms_info.soc = 100;
-    else if (total_voltage >= BMS_PACK_MIN_VOLTAGE)
-        local_bms_info.soc = (total_voltage - BMS_PACK_MIN_VOLTAGE) * 100 / (BMS_PACK_MAX_VOLTAGE - BMS_PACK_MIN_VOLTAGE);
-    else
-        local_bms_info.soc = 0;
-}
-
 static void CellParameter_Calculate(void)
 {
-    local_bms_info.cell_data.max_voltage = 0;
-    local_bms_info.cell_data.min_voltage = 0xFFFF;
+    bms_data_acq.max_voltage = 0;
+    bms_data_acq.min_voltage = 0xFFFF;
     uint16_t voltage = 0;
 
     for (int i = 0; i < BMS_NUM_CELLS; i++)
     {
-        voltage = local_bms_info.cell_data.voltages[i];
+        voltage = bms_data_acq.cell_voltages[i];
 
-        if (voltage > local_bms_info.cell_data.max_voltage)
+        if (voltage > bms_data_acq.max_voltage)
         {
-            local_bms_info.cell_data.max_voltage = voltage;
+            bms_data_acq.max_voltage = voltage;
         }
-        if (voltage < local_bms_info.cell_data.min_voltage)
+        if (voltage < bms_data_acq.min_voltage)
         {
-            local_bms_info.cell_data.min_voltage = voltage;
+            bms_data_acq.min_voltage = voltage;
         }
     }
 
-    local_bms_info.cell_data.voltage_dif = local_bms_info.cell_data.max_voltage - local_bms_info.cell_data.min_voltage;
-    local_bms_info.cell_data.avg_voltage = local_bms_info.pack_data.voltage / BMS_NUM_CELLS;
+    bms_data_acq.max_voltage_diff = bms_data_acq.max_voltage - bms_data_acq.min_voltage;
+    bms_data_acq.avg_voltage = bms_data_acq.battery_voltage / BMS_NUM_CELLS;
 }
 
 static void BMS_PrintInfo(void)
 {
-    float current_a = local_bms_info.pack_data.current / 1000.0f;       // 转换为A
-    float temperature_c = local_bms_info.pack_data.temperature / 10.0f; // 转换为℃
+    float soc_f = bms_battery_gauge_data.soc * 0.1f;       // 转换为%
+    float current_a = bms_data_acq.current * 0.001f;       // 转换为A
+    float temperature_c = bms_data_acq.temperature * 0.1f; // 转换为℃
 
     LOG_I("/******************* BMS Info *******************/\r\n");
     BMS_StateOutput();
-    LOG_I("Battery SOC: %d%%\r\n\r\n", local_bms_info.soc);
+    LOG_I("Battery SOC: %.1f%%\r\n", soc_f);
 
-    LOG_I("Cell Max Voltage: %d.%03dV\r\n", local_bms_info.cell_data.max_voltage / 1000, local_bms_info.cell_data.max_voltage % 1000);
-    LOG_I("Cell Min Voltage: %d.%03dV\r\n", local_bms_info.cell_data.min_voltage / 1000, local_bms_info.cell_data.min_voltage % 1000);
-    LOG_I("Cell Max Voltage Difference: %01d.%03dV\r\n", local_bms_info.cell_data.voltage_dif / 1000, local_bms_info.cell_data.voltage_dif % 1000);
-    LOG_I("Cell Avg Voltage: %d.%03dV\r\n\r\n", local_bms_info.cell_data.avg_voltage / 1000, local_bms_info.cell_data.avg_voltage % 1000);
+    LOG_I("Cell Max Voltage: %d.%03dV\r\n", bms_data_acq.max_voltage / 1000, bms_data_acq.max_voltage % 1000);
+    LOG_I("Cell Min Voltage: %d.%03dV\r\n", bms_data_acq.min_voltage / 1000, bms_data_acq.min_voltage % 1000);
+    LOG_I("Cell Max Voltage Difference: %01d.%03dV\r\n", bms_data_acq.max_voltage_diff / 1000, bms_data_acq.max_voltage_diff % 1000);
+    LOG_I("Cell Avg Voltage: %d.%03dV\r\n\r\n", bms_data_acq.avg_voltage / 1000, bms_data_acq.avg_voltage % 1000);
 
-    LOG_I("Battery Voltage: %d.%03dV\r\n", local_bms_info.pack_data.voltage / 1000, local_bms_info.pack_data.voltage % 1000);
+    LOG_I("Battery Voltage: %d.%03dV\r\n", bms_data_acq.battery_voltage / 1000, bms_data_acq.battery_voltage % 1000);
     LOG_I("Battery Current: %.3fA\r\n", current_a);
     LOG_I("Battery Temperature: %.1f\r\n\r\n", temperature_c);
 
-    LOG_I("Cell1 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[0] / 1000, local_bms_info.cell_data.voltages[0] % 1000);
-    LOG_I("Cell2 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[1] / 1000, local_bms_info.cell_data.voltages[1] % 1000);
-    LOG_I("Cell3 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[2] / 1000, local_bms_info.cell_data.voltages[2] % 1000);
-    LOG_I("Cell4 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[3] / 1000, local_bms_info.cell_data.voltages[3] % 1000);
-    LOG_I("Cell5 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[4] / 1000, local_bms_info.cell_data.voltages[4] % 1000);
-    LOG_I("Cell6 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[5] / 1000, local_bms_info.cell_data.voltages[5] % 1000);
-    LOG_I("Cell7 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[6] / 1000, local_bms_info.cell_data.voltages[6] % 1000);
-    LOG_I("Cell8 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[7] / 1000, local_bms_info.cell_data.voltages[7] % 1000);
-    LOG_I("Cell9 Voltage: %d.%03dV\r\n", local_bms_info.cell_data.voltages[8] / 1000, local_bms_info.cell_data.voltages[8] % 1000);
+    LOG_I("Cell1 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[0] / 1000, bms_data_acq.cell_voltages[0] % 1000);
+    LOG_I("Cell2 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[1] / 1000, bms_data_acq.cell_voltages[1] % 1000);
+    LOG_I("Cell3 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[2] / 1000, bms_data_acq.cell_voltages[2] % 1000);
+    LOG_I("Cell4 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[3] / 1000, bms_data_acq.cell_voltages[3] % 1000);
+    LOG_I("Cell5 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[4] / 1000, bms_data_acq.cell_voltages[4] % 1000);
+    LOG_I("Cell6 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[5] / 1000, bms_data_acq.cell_voltages[5] % 1000);
+    LOG_I("Cell7 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[6] / 1000, bms_data_acq.cell_voltages[6] % 1000);
+    LOG_I("Cell8 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[7] / 1000, bms_data_acq.cell_voltages[7] % 1000);
+    LOG_I("Cell9 Voltage: %d.%03dV\r\n\r\n", bms_data_acq.cell_voltages[8] / 1000, bms_data_acq.cell_voltages[8] % 1000);
+
+    LOG_I("CHG: %d; DSG: %d\r\n", bms_fet_state.state_CHG, bms_fet_state.state_DSG);
     LOG_I("/***********************************************/\r\n\r\n");
 }
 
 static void BMS_StateOutput(void)
 {
-    switch (local_bms_info.state)
+    switch (bms_state)
     {
     case BMS_STATE_STANDBY:
         LOG_I("BMS State: Standby\r\n");
@@ -140,36 +122,44 @@ static void BMS_StateOutput(void)
         break;
     case BMS_STATE_FAULT:
         LOG_I("BMS State: Fault\r\n");
-        BMS_FaultOutput();
+        BMS_AlertOutput();
         break;
     }
 }
 
-static void BMS_FaultOutput(void)
+static void BMS_AlertOutput(void)
 {
-    switch (local_bms_info.fault)
+    switch (bms_protect_alert)
     {
-    case FAULT_CELL_OV:
-        LOG_I("BMS Fault: Cell Overvoltage\r\n");
-    case FAULT_CELL_UV:
-        LOG_I("BMS Fault: Cell Undervoltage\r\n");
-    case FAULT_PACK_OV:
-        LOG_I("BMS Fault: Pack Overvoltage\r\n");
-    case FAULT_PACK_UV:
-        LOG_I("BMS Fault: Pack Undervoltage\r\n");
-
-    case FAULT_CHG_OC:
-        LOG_I("BMS Fault: Charge Overcurrent\r\n");
-    case FAULT_DSG_OC:
-        LOG_I("BMS Fault: Discharge Overcurrent\r\n");
-    case FAULT_SHORT_CIRCUIT:
-        LOG_I("BMS Fault: Short Circuit\r\n");
-    case FAULT_OVERTEMP:
-        LOG_I("BMS Fault: Overtemperature\r\n");
-
-    case FAULT_UNDERTEMP:
-        LOG_I("BMS Fault: Undertemperature\r\n");
-    case FAULT_AFE_COMM:
-        LOG_I("BMS Fault: AFE Communication Fault\r\n");
+    case FlAG_ALERT_OV:
+        LOG_I("BMS Alert: Charging Overvoltage\r\n");
+        break;
+    case FlAG_ALERT_UV:
+        LOG_I("BMS Alert: Discharging Undervoltage\r\n");
+        break;
+    case FlAG_ALERT_OCC:
+        LOG_I("BMS Alert: Charging Overcurrent\r\n");
+        break;
+    case FlAG_ALERT_OCD:
+        LOG_I("BMS Alert: Discharging Overcurrent\r\n");
+        break;
+    case FlAG_ALERT_SCD:
+        LOG_I("BMS Alert: Discharging Short Circuit\r\n");
+        break;
+    case FlAG_ALERT_OTC:
+        LOG_I("BMS Alert: Charging Overtemperature\r\n");
+        break;
+    case FlAG_ALERT_OTD:
+        LOG_I("BMS Alert: Discharging Overtemperature\r\n");
+        break;
+    case FlAG_ALERT_LTC:
+        LOG_I("BMS Alert: Charging Low Temperature\r\n");
+        break;
+    case FlAG_ALERT_LTD:
+        LOG_I("BMS Alert: Discharging Low Temperature\r\n");
+        break;
+    case FlAG_ALERT_AFE_COMM:
+        LOG_I("BMS Alert: AFE Communication Fault\r\n");
+        break;
     }
 }

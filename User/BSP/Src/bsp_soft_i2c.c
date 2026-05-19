@@ -5,8 +5,8 @@
 #define I2C_DELAY_US 5
 
 static void I2C_Delay(void);
-static void I2C_EnterCritical(void);
-static void I2C_ExitCritical(void);
+static void I2C_SuspendAll(void);
+static void I2C_ResumeAll(void);
 
 static void I2C_WriteSCL(I2C_Handle_t *hi2c, uint8_t state);
 static void I2C_WriteSDA(I2C_Handle_t *hi2c, uint8_t state);
@@ -51,21 +51,21 @@ static void I2C_Delay(void)
 // }
 
 /**
- * @brief 进入临界区
+ * @brief 挂起调度器，禁止上下文切换
  * @retval None
  */
-static void I2C_EnterCritical(void)
+static void I2C_SuspendAll(void)
 {
-    portENTER_CRITICAL(); // 进入临界区
+    osKernelLock();
 }
 
 /**
- * @brief 退出临界区
+ * @brief 恢复调度器，允许上下文切换
  * @retval None
  */
-static void I2C_ExitCritical(void)
+static void I2C_ResumeAll(void)
 {
-    portEXIT_CRITICAL(); // 退出临界区
+    osKernelUnlock();
 }
 
 /**
@@ -205,7 +205,7 @@ uint8_t I2C_Write(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t 
     if (hi2c == NULL || data_len == 0 || data == NULL)
         return 0;
 
-    I2C_EnterCritical(); // 进入临界区
+    I2C_SuspendAll(); // 挂起调度器
     I2C_Start(hi2c);
 
     I2C_SendByte(hi2c, hi2c->DeviceAddress << 1);
@@ -230,14 +230,14 @@ uint8_t I2C_Write(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t 
     }
 
     I2C_Stop(hi2c);
-    I2C_ExitCritical(); // 退出临界区
-    return 1;           // Success
+    I2C_ResumeAll(); // 恢复调度器
+    return 1;        // Success
 
 error:
     // 错误处理
     I2C_Stop(hi2c);
-    I2C_ExitCritical(); // 退出临界区
-    return 0;           // No ACK
+    I2C_ResumeAll(); // 恢复调度器
+    return 0;        // No ACK
 }
 
 /**
@@ -253,7 +253,7 @@ uint8_t I2C_Read(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t d
     if (hi2c == NULL || data_len == 0 || data == NULL)
         return 0;
 
-    I2C_EnterCritical(); // 进入临界区
+    I2C_SuspendAll(); // 挂起调度器
     I2C_Start(hi2c);
 
     I2C_SendByte(hi2c, hi2c->DeviceAddress << 1);
@@ -283,10 +283,11 @@ uint8_t I2C_Read(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t d
     }
 
     I2C_Stop(hi2c);
-    I2C_ExitCritical(); // 退出临界区
-    return 1;           // Success
+    I2C_ResumeAll(); // 恢复调度器
+    return 1;        // Success
 
 error:
-    I2C_ExitCritical(); // 退出临界区
-    return 0;           // No ACK
+    I2C_Stop(hi2c);
+    I2C_ResumeAll(); // 恢复调度器
+    return 0;        // No ACK
 }

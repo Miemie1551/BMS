@@ -8,14 +8,14 @@
 #define PRINT_USART_HANDLE huart1
 #define PRINT_USART_TIMEOUT 100
 
-#define ENTER_CRITICAL() portENTER_CRITICAL()
-#define EXIT_CRITICAL() portEXIT_CRITICAL()
+#define SuspendAll() osKernelLock()
+#define ResumeAll() osKernelUnlock()
 
 void Printf(char *format, ...)
 {
-    char buf[64];
+    char buf[128];
 
-    ENTER_CRITICAL();
+    SuspendAll(); // 挂起调度器
 
     va_list ap;
     va_start(ap, format);
@@ -27,5 +27,5 @@ void Printf(char *format, ...)
 
     va_end(ap);
 
-    EXIT_CRITICAL();
+    ResumeAll(); // 恢复调度器
 }

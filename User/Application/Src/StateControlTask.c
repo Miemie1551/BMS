@@ -1,7 +1,9 @@
 #include "StateControlTask.h"
 #include "cmsis_os.h"
 
-#include "BMSInfo.h"
+#include "DataAcqTask.h"
+#include "FaultProtectTask.h"
+#include "BatteryGaugeTask.h"
 
 #include "bsp_usart.h"
 #include "dev_bq76940.h"
@@ -17,32 +19,30 @@
 
 #define STATE_CHECK_PERIOD_MS 1000
 
-static BMS_Info_t info;
-static BMS_Info_t *info_ptr = NULL;
-static BMS_State_t last_state = BMS_STATE_STANDBY;
+// 状态转换电流阈值
+#define BMS_CHARGING_THRESHOLD 50     // 充电电流阈值（mA）
+#define BMS_DISCHARGING_THRESHOLD -50 // 放电电流阈值（mA）
+
+BMS_State_t bms_state = BMS_STATE_STANDBY;
+BMS_FETState_t bms_fet_state = {1, 1};
 
 static void BMS_StandbyStateHandler(void);
 static void BMS_ChargingStateHandler(void);
 static void BMS_DischargingStateHandler(void);
 static void BMS_FaultStateHandler(void);
 
-static void BMS_EnterChargingMode(void);
-static void BMS_EnterDischargingMode(void);
-static void BMS_EnterStandbyMode(void);
-static void BMS_EnterFaultMode(void);
-
 void StateControlTask(void *argument)
 {
     for (;;)
     {
-        // 获取当前电池信息
-        BMS_AcquireBMSInfoMutex(); // 获取互斥锁
-        BMS_CopyBMSInfo(&info);    // 复制最新BMS信息
-        last_state = info.state;   // 获取上次状态
-        BMS_ReleaseBMSInfoMutex(); // 释放互斥锁
+        // 检测故障
+        if (bms_protect_alert != FLAG_ALERT_NONE)
+        {
+            bms_state = BMS_STATE_FAULT;
+        }
 
         // 状态机转换
-        switch (info.state)
+        switch (bms_state)
         {
         case BMS_STATE_STANDBY:
             BMS_StandbyStateHandler();
@@ -58,15 +58,6 @@ void StateControlTask(void *argument)
             break;
         }
 
-        // 只有状态改变时才更新状态
-        if (last_state != info.state)
-        {
-            BMS_AcquireBMSInfoMutex();    // 获取互斥锁
-            BMS_GetBMSInfoPtr(&info_ptr); // 获取最新BMS信息指针
-            info_ptr->state = info.state; // 更新状态
-            BMS_ReleaseBMSInfoMutex();    // 释放互斥锁
-        }
-
         osDelay(STATE_CHECK_PERIOD_MS);
     }
 }
@@ -77,88 +68,122 @@ void StateControlTask(void *argument)
  */
 static void BMS_StandbyStateHandler(void)
 {
-    // 检测故障
-    if (info.fault != FAULT_NONE)
+    // 充电状态判断：充电电流超过预设阈值
+    if (bms_data_acq.current > BMS_CHARGING_THRESHOLD)
     {
-        info.state = BMS_STATE_FAULT;
-        BMS_EnterFaultMode();
+        bms_state = BMS_STATE_CHARGING;
     }
-    // 检测充电请求：电池电压低于阈值且电流超过阈值
-    else if (info.pack_data.current > BMS_CHARGING_THRESHOLD &&
-             info.cell_data.max_voltage <= (BMS_CELL_OV_THRESHOLD - 100))
+    // 放电状态判断：放电电流低于预设阈值
+    else if (bms_data_acq.current < BMS_DISCHARGING_THRESHOLD)
     {
-        info.state = BMS_STATE_CHARGING;
+        bms_state = BMS_STATE_DISCHARGING;
     }
-    else if (info.pack_data.current < BMS_DISCHARGING_THRESHOLD)
+
+    static uint8_t charge_count = 0;    // 充电请求计数器
+    static uint8_t discharge_count = 0; // 放电请求计数器
+
+    /* 根据充放电开关状态和电池SOC阈值判断是否需要充电或放电 */
+    if (bms_fet_state.state_CHG == 0 && bms_battery_gauge_data.soc < BMS_START_CHARGING_SOC)
     {
-        info.state = BMS_STATE_DISCHARGING;
+        charge_count++;
+        if (charge_count >= 3)
+        {
+            charge_count = 0;
+            BMS_ControlCharge(1);
+        }
+    }
+    if (bms_fet_state.state_DSG == 0 && bms_battery_gauge_data.soc > BMS_START_DISCHARGING_SOC)
+    {
+        discharge_count++;
+        if (discharge_count >= 3)
+        {
+            discharge_count = 0;
+            BMS_ControlDischarge(1);
+        }
     }
 }
 
 static void BMS_ChargingStateHandler(void)
 {
-    // 检测故障
-    if (info.fault != FAULT_NONE)
+    static uint8_t charge_completed_count = 0; // 充电完成计数器
+
+    // 停止充电判断：电流低于阈值
+    if (bms_data_acq.current < BMS_CHARGING_THRESHOLD)
     {
-        info.state = BMS_STATE_FAULT;
-        BMS_EnterFaultMode();
+        bms_state = BMS_STATE_STANDBY;
     }
-    // 充电完成或停止放电
-    else if (info.pack_data.current < BMS_CHARGING_THRESHOLD ||
-             info.cell_data.max_voltage >= BMS_CELL_OV_THRESHOLD)
+    // 充电完成判断：电池SOC超过满电阈值
+    else if (bms_battery_gauge_data.soc >= BMS_STOP_CHARGING_SOC)
     {
-        info.state = BMS_STATE_STANDBY;
-        // BMS_EnterStandbyMode();
+        charge_completed_count++;
+        if (charge_completed_count >= 3)
+        {
+            charge_completed_count = 0;
+            bms_state = BMS_STATE_STANDBY;
+            BMS_ControlCharge(0);
+        }
     }
 }
 
 static void BMS_DischargingStateHandler(void)
 {
-    // 检测故障
-    if (info.fault != FAULT_NONE)
+    static uint8_t discharge_completed_count = 0; // 放电完成计数器
+
+    // 停止放电判断：电流低于阈值
+    if (bms_data_acq.current > BMS_DISCHARGING_THRESHOLD)
     {
-        info.state = BMS_STATE_FAULT;
-        BMS_EnterFaultMode();
+        bms_state = BMS_STATE_STANDBY;
     }
-    // 放电完成或停止充电
-    else if (info.pack_data.current > BMS_DISCHARGING_THRESHOLD ||
-             info.soc <= 0)
+    // 放电完成判断：电池SOC低于空电阈值
+    else if (bms_battery_gauge_data.soc <= BMS_STOP_DISCHARGING_SOC)
     {
-        info.state = BMS_STATE_STANDBY;
-        // BMS_EnterStandbyMode();
+        discharge_completed_count++;
+        if (discharge_completed_count >= 3)
+        {
+            discharge_completed_count = 0;
+            bms_state = BMS_STATE_STANDBY;
+            BMS_ControlDischarge(0);
+        }
     }
 }
 
 static void BMS_FaultStateHandler(void)
 {
     // 故障状态保持，等待故障清除
-    if (info.fault == FAULT_NONE)
+    if (bms_protect_alert == FLAG_ALERT_NONE)
     {
-        info.state = BMS_STATE_STANDBY;
-        BMS_EnterStandbyMode();
+        bms_state = BMS_STATE_STANDBY;
     }
 }
 
-static void BMS_EnterChargingMode(void)
+void BMS_ControlCharge(uint8_t enable)
 {
+    bms_fet_state.state_CHG = enable;
+    if (enable)
+    {
+        BQ76940_EnableCharging();
+    }
+    else
+    {
+        BQ76940_DisableCharging();
+    }
 }
 
-static void BMS_EnterDischargingMode(void)
+void BMS_ControlDischarge(uint8_t enable)
 {
+    bms_fet_state.state_DSG = enable;
+    if (enable)
+    {
+        BQ76940_EnableDischarging();
+    }
+    else
+    {
+        BQ76940_DisableDischarging();
+    }
 }
 
-static void BMS_EnterStandbyMode(void)
+void BMS_UpdateState_CHGAndDSG(uint8_t CHG_new_state, uint8_t DSG_new_state)
 {
-    // 打开充电放电回路
-    BQ76940_EnableCharging();
-    BQ76940_EnableDischarging();
-    LOG_D("Turn on the charging and discharging circuitry\r\n");
-}
-
-static void BMS_EnterFaultMode(void)
-{
-    // 关闭充电放电回路
-    BQ76940_DisableCharging();
-    BQ76940_DisableDischarging();
-    LOG_D("Turn off the charging and discharging circuitry\r\n");
+    bms_fet_state.state_CHG = CHG_new_state;
+    bms_fet_state.state_DSG = DSG_new_state;
 }
