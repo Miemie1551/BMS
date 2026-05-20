@@ -103,6 +103,6 @@ void TaskInit(void)
     {
         LOG_E("BalanceControlTask create failed\r\n");
     }
-    
+
     osKernelUnlock(); // 释放所有任务，允许任务切换
 }
