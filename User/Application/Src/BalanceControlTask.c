@@ -73,7 +73,8 @@ static void BMS_BalanceControl(void)
     if (bms_balance_info.balance_status == BMS_BALANCE_STATUS_RUNNING)
     {
         if ((bms_data_acq.cell_voltages[bms_balance_info.balance_cell_index] -
-             bms_data_acq.min_voltage) < BMS_BALANCE_STOP_VOLTAGE_DIFF)
+             bms_data_acq.min_voltage) < BMS_BALANCE_STOP_VOLTAGE_DIFF ||
+            bms_sys_state == BMS_STATE_DISCHARGING)
         {
             stop_balance_count++;
             if (stop_balance_count >= 4)
