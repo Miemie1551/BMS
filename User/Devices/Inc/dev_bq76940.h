@@ -19,6 +19,7 @@ typedef enum
     STAT_OCD_BIT = 0x01 << 0            // 放电过流故障
 } SYS_STAT_Bits;
 
+// 电池单体id索引映射表
 extern const uint8_t cell_id_index_map[CELL_TOTAL];
 
 uint8_t BQ76940_Init(void);

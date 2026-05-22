@@ -3,6 +3,6 @@
 
 #include "stm32f1xx_hal.h"
 
-void Printf(char *format, ...);
+void Printf(const char *format, ...);
 
 #endif /* __BSP_USART_H */

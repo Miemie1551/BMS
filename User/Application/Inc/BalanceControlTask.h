@@ -1,5 +1,5 @@
-#ifndef __BananceControlTask_H
-#define __BananceControlTask_H
+#ifndef __BalanceControlTask_H
+#define __BalanceControlTask_H
 
 #include "stm32f1xx_hal.h"
 

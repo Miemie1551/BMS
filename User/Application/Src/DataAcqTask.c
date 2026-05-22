@@ -9,9 +9,23 @@
 #include "bsp_usart.h"
 #include "dev_bq76940.h"
 
+#define LOG_LEVEL 1
+
+#if (LOG_LEVEL == 1)
 #define LOG_I(fmt, ...) Printf("[INFO] " fmt, ##__VA_ARGS__)
 #define LOG_D(fmt, ...) Printf("[DEBUG] " fmt, ##__VA_ARGS__)
 #define LOG_E(fmt, ...) Printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+
+#elif (LOG_LEVEL == 2)
+#define LOG_I(fmt, ...)
+#define LOG_D(fmt, ...)
+#define LOG_E(fmt, ...) Printf("[ERROR] [%s:%d]" fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+
+#elif (LOG_LEVEL == 3)
+#define LOG_I(fmt, ...)
+#define LOG_D(fmt, ...)
+#define LOG_E(fmt, ...)
+#endif
 
 #define DATA_ACQ_TASK_PERIOD_MS 1000
 
@@ -47,7 +61,7 @@ void DataAcqTask(void *argument)
         CellParameter_Calculate();
         BMS_PrintInfo();
 
-        osDelay(1000);
+        osDelay(DATA_ACQ_TASK_PERIOD_MS);
     }
 }
 
@@ -95,15 +109,10 @@ static void BMS_PrintInfo(void)
     LOG_I("Battery Current: %.3fA\r\n", current_a);
     LOG_I("Battery Temperature: %.1f\r\n\r\n", temperature_c);
 
-    LOG_I("Cell1 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[0] / 1000, bms_data_acq.cell_voltages[0] % 1000);
-    LOG_I("Cell2 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[1] / 1000, bms_data_acq.cell_voltages[1] % 1000);
-    LOG_I("Cell3 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[2] / 1000, bms_data_acq.cell_voltages[2] % 1000);
-    LOG_I("Cell4 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[3] / 1000, bms_data_acq.cell_voltages[3] % 1000);
-    LOG_I("Cell5 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[4] / 1000, bms_data_acq.cell_voltages[4] % 1000);
-    LOG_I("Cell6 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[5] / 1000, bms_data_acq.cell_voltages[5] % 1000);
-    LOG_I("Cell7 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[6] / 1000, bms_data_acq.cell_voltages[6] % 1000);
-    LOG_I("Cell8 Voltage: %d.%03dV\r\n", bms_data_acq.cell_voltages[7] / 1000, bms_data_acq.cell_voltages[7] % 1000);
-    LOG_I("Cell9 Voltage: %d.%03dV\r\n\r\n", bms_data_acq.cell_voltages[8] / 1000, bms_data_acq.cell_voltages[8] % 1000);
+    for (int i = 0; i < BMS_NUM_CELLS; i++)
+    {
+        LOG_I("Cell%d Voltage: %d.%03dV\r\n", i + 1, bms_data_acq.cell_voltages[i] / 1000, bms_data_acq.cell_voltages[i] % 1000);
+    }
 
     LOG_I("CHG: %d; DSG: %d\r\n", bms_fet_state.state_CHG, bms_fet_state.state_DSG);
     if (bms_balance_info.balance_status == BMS_BALANCE_STATUS_RUNNING)
@@ -137,34 +146,34 @@ static void BMS_AlertOutput(void)
 {
     switch (bms_protect_alert)
     {
-    case FlAG_ALERT_OV:
+    case FLAG_ALERT_OV:
         LOG_I("BMS Alert: Charging Overvoltage\r\n");
         break;
-    case FlAG_ALERT_UV:
+    case FLAG_ALERT_UV:
         LOG_I("BMS Alert: Discharging Undervoltage\r\n");
         break;
-    case FlAG_ALERT_OCC:
+    case FLAG_ALERT_OCC:
         LOG_I("BMS Alert: Charging Overcurrent\r\n");
         break;
-    case FlAG_ALERT_OCD:
+    case FLAG_ALERT_OCD:
         LOG_I("BMS Alert: Discharging Overcurrent\r\n");
         break;
-    case FlAG_ALERT_SCD:
+    case FLAG_ALERT_SCD:
         LOG_I("BMS Alert: Discharging Short Circuit\r\n");
         break;
-    case FlAG_ALERT_OTC:
+    case FLAG_ALERT_OTC:
         LOG_I("BMS Alert: Charging Overtemperature\r\n");
         break;
-    case FlAG_ALERT_OTD:
+    case FLAG_ALERT_OTD:
         LOG_I("BMS Alert: Discharging Overtemperature\r\n");
         break;
-    case FlAG_ALERT_LTC:
+    case FLAG_ALERT_LTC:
         LOG_I("BMS Alert: Charging Low Temperature\r\n");
         break;
-    case FlAG_ALERT_LTD:
+    case FLAG_ALERT_LTD:
         LOG_I("BMS Alert: Discharging Low Temperature\r\n");
         break;
-    case FlAG_ALERT_AFE_COMM:
+    case FLAG_ALERT_AFE_COMM:
         LOG_I("BMS Alert: AFE Communication Fault\r\n");
         break;
     }

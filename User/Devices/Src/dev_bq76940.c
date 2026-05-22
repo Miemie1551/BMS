@@ -177,16 +177,16 @@ uint8_t BQ76940_Init(void)
     /* 5. 配置SYS_CTRL2：启用CC（连续读取模式），打开DSG、CHG */
     BQ76940_WriteByteWithCRC(SYS_CTRL2, 0x43); // 0x43 = 01000011b
 
-    /* 6. 配置PROTECT1：低量程，放电短路延迟：400us，短路电压：22mV。换算短路电流：22/4=5.5A */
-    BQ76940_WriteByteWithCRC(PROTECT1, 0x18); // 0x18 = 00011000b
+    /* 6. 配置PROTECT1：低量程，放电短路延迟：400us，短路电压：22mV。换算短路电流：22mV/4mΩ=5.5A */
+    BQ76940_WriteByteWithCRC(PROTECT1, 0x18); // 0x18 = 0 00 11 000b
 
-    /* 7. 配置PROTECT2：放电过流延迟：400us，过流电压：11mV。换算过流电流：11/4=2.75A */
-    BQ76940_WriteByteWithCRC(PROTECT2, 0x71); // 0x71 = 01110001b
+    /* 7. 配置PROTECT2：放电过流延迟：320ms，过流电压：11mV。换算过流电流：11mV/4mΩ=2.75A */
+    BQ76940_WriteByteWithCRC(PROTECT2, 0x71); // 0x71 = 0 101 0001b
 
     /* 8. 配置PROTECT3：欠压延迟：4s，过压延迟：4s */
-    BQ76940_WriteByteWithCRC(PROTECT3, 0x60); // 0x60 = 01100000b
+    BQ76940_WriteByteWithCRC(PROTECT3, 0x60); // 0x60 = 01 10 0000b
 
-    /* 9. 配置过压和欠压保护阈值：4250mV，3200mV */
+    /* 9. 配置过压和欠压保护阈值：OV_THRESHOLD=4200mV，UV_THRESHOLD=3100mV */
     BQ76940_ConfigureTRIP();
 
     /* 10. 配置CC_CFG：默认最优配置 */

@@ -12,7 +12,7 @@ const osMessageQueueAttr_t canRxMQHandle_attr = {
 
 CAN_RxMsg_t can_rx_msg = {0};
 
-// CAN/RS485通信
+// CAN通信
 void CommTask(void *argument)
 {
     // 初始化CAN
@@ -33,14 +33,13 @@ void CommTask(void *argument)
         {
             LOG_I("CAN Rx: id = 0x%04X, dlc = %d, data = ", can_rx_msg.id, can_rx_msg.dlc);
 
-            for (uint8_t i = 0; i < can_rx_msg.dlc - 1; i++)
+            for (uint8_t i = 0; i < can_rx_msg.dlc; i++)
             {
                 Printf("0x%02X ", can_rx_msg.data[i]);
             }
-            Printf("0x%02X\r\n", can_rx_msg.data[7]);
         }
 
-        uint32_t std_id = 0x123;
+        uint32_t std_id = 0x012;
         uint8_t data[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
         // 发送CAN消息
         BSP_CAN_SendStdMsg(std_id, data, 8);

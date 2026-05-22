@@ -9,11 +9,13 @@
 // 电压阈值，单位：mV
 #define BMS_OV_PROTECT 4200 // 单体过压保护阈值 OV范围：3.15~4.70V  3136~4674mV
 #define BMS_OV_RELIEVE 4180 // 单体过压解除保护阈值
+#define BMS_OV_DELAY 2      // 单体过压保护延迟时间(s)
 #define BMS_UV_PROTECT 3100 // 单体欠压保护阈值 UV范围：1.58~3.10V  1589~3125mV
 #define BMS_UV_RELIEVE 3150 // 单体欠压解除保护阈值
+#define BMS_UV_DELAY 2      // 单体欠压保护延迟时间(s)
 
 #define BMS_OCC_PROTECT 2000    // 充电过流保护阈值(mA)
-#define BMS_OCC_DELAY 2         // 充电过流保护延迟时间(s)
+#define BMS_OCC_DELAY 1         // 充电过流保护延迟时间(s)
 #define BMS_OCC_RELIEVE_TIME 30 // 充电过流解除保护时间(s)
 
 #define BMS_OCD_PROTECT 1000    // 放电过流保护阈值(mA)

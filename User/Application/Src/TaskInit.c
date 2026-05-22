@@ -63,7 +63,14 @@ const osThreadAttr_t balanceControlTask_attributes = {
 
 void TaskInit(void)
 {
-    BQ76940_Init(); // 初始化BQ76940
+    BQ76940_Init(); // 初始化BQ76940（内部包含HAL_Delay()延时，只能在有任务运行时调用）
+
+    // 让数据采集任务先运行，避免故障保护误触发（数据采集任务优先级<故障保护任务优先级）
+    dataAcqTaskHandle = osThreadNew(DataAcqTask, NULL, &dataAcqTask_attributes);
+    if (dataAcqTaskHandle == NULL)
+    {
+        LOG_E("DataAcqTask create failed\r\n");
+    }
 
     osKernelLock(); // 挂起所有任务，只允许当前任务切换
 
@@ -72,12 +79,6 @@ void TaskInit(void)
     if (faultProtectTaskHandle == NULL)
     {
         LOG_E("FaultProtectTask create failed\r\n");
-    }
-
-    dataAcqTaskHandle = osThreadNew(DataAcqTask, NULL, &dataAcqTask_attributes);
-    if (dataAcqTaskHandle == NULL)
-    {
-        LOG_E("DataAcqTask create failed\r\n");
     }
 
     stateControlTaskHandle = osThreadNew(StateControlTask, NULL, &stateControlTask_attributes);

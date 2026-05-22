@@ -17,8 +17,13 @@
 BMS_ProtectAlert_t bms_protect_alert;
 static BMS_ProtectParams_t bms_protect_params =
     {
+        .OV_Protect = BMS_OV_PROTECT,
         .OV_Relieve = BMS_OV_RELIEVE,
+        .OV_Delay = BMS_OV_DELAY,
+
+        .UV_Protect = BMS_UV_PROTECT,
         .UV_Relieve = BMS_UV_RELIEVE,
+        .UV_Delay = BMS_UV_DELAY,
 
         .OCC_Protect = BMS_OCC_PROTECT,
         .OCC_RelieveTime = BMS_OCC_RELIEVE_TIME,
@@ -84,23 +89,54 @@ void FaultProtectTask(void *argument)
 
 static void BMS_ProtectSWMonitor(void)
 {
+    static uint32_t ov_fault_timer_count = 0;  // 充电过压故障定时器计数
+    static uint32_t occ_fault_timer_count = 0; // 充电过流故障定时器计数
+    static uint32_t uv_fault_timer_count = 0;  // 放电过压故障定时器计数
+    static uint32_t ocd_fault_timer_count = 0; // 放电过流故障定时器计数
+
     switch (bms_sys_state)
     {
     case BMS_STATE_CHARGING:
-        // 充电过流保护
+        // 补充冗余保护：充电过压保护（带延迟时间）
+        if (bms_data_acq.max_voltage > bms_protect_params.OV_Protect)
+        {
+            ov_fault_timer_count += FAULT_PROTECT_TASK_PERIOD_MS;
+            if (ov_fault_timer_count >= (bms_protect_params.OV_Delay * 1000))
+            {
+                BMS_ControlCharge(0);
+                bms_protect_alert = FLAG_ALERT_OV;
+                bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
+                LOG_W("OV Fault\r\n");
+            }
+        }
+        else
+        {
+            ov_fault_timer_count = 0;
+        }
+
+        // 充电过流保护（带延迟时间）
         if (bms_data_acq.current > bms_protect_params.OCC_Protect)
         {
-            BMS_ControlCharge(0);
-            bms_protect_alert = FlAG_ALERT_OCC;
-            bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
-            BMS_ProtectStartTimer(bms_protect_params.OCC_RelieveTime);
-            LOG_W("OCC Fault\r\n");
+            occ_fault_timer_count += FAULT_PROTECT_TASK_PERIOD_MS;
+            if (occ_fault_timer_count >= (bms_protect_params.OCC_Delay * 1000))
+            {
+                BMS_ControlCharge(0);
+                bms_protect_alert = FLAG_ALERT_OCC;
+                bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
+                BMS_ProtectStartTimer(bms_protect_params.OCC_RelieveTime);
+                LOG_W("OCC Fault\r\n");
+            }
         }
+        else
+        {
+            occ_fault_timer_count = 0;
+        }
+
         // 充电过温保护
-        else if (bms_data_acq.temperature > bms_protect_params.OTC_Protect)
+        if (bms_data_acq.temperature > bms_protect_params.OTC_Protect)
         {
             BMS_ControlCharge(0);
-            bms_protect_alert = FlAG_ALERT_OTC;
+            bms_protect_alert = FLAG_ALERT_OTC;
             bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
             LOG_W("OTC Fault\r\n");
         }
@@ -108,25 +144,59 @@ static void BMS_ProtectSWMonitor(void)
         else if (bms_data_acq.temperature < bms_protect_params.LTC_Protect)
         {
             BMS_ControlCharge(0);
-            bms_protect_alert = FlAG_ALERT_LTC;
+            bms_protect_alert = FLAG_ALERT_LTC;
             bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
             LOG_W("LTC Fault\r\n");
         }
         break;
     case BMS_STATE_DISCHARGING:
+        // 补充冗余保护：放电欠压保护（带延迟时间）
+        if (bms_data_acq.min_voltage < bms_protect_params.UV_Protect)
+        {
+            uv_fault_timer_count += FAULT_PROTECT_TASK_PERIOD_MS;
+            if (uv_fault_timer_count >= (bms_protect_params.UV_Delay * 1000))
+            {
+                BMS_ControlDischarge(0);
+                bms_protect_alert = FLAG_ALERT_UV;
+                bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
+                LOG_W("UV Fault\r\n");
+            }
+        }
+        else
+        {
+            uv_fault_timer_count = 0;
+        }
+
+        // 补充冗余保护：放电过流保护（带延迟时间）
+        if (bms_data_acq.current > bms_protect_params.OCD_Protect)
+        {
+            ocd_fault_timer_count += FAULT_PROTECT_TASK_PERIOD_MS;
+            if (ocd_fault_timer_count >= (bms_protect_params.OCD_Delay * 1000))
+            {
+                BMS_ControlDischarge(0);
+                bms_protect_alert = FLAG_ALERT_UV;
+                bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
+                LOG_W("UV Fault\r\n");
+            }
+        }
+        else
+        {
+            uv_fault_timer_count = 0;
+        }
+
         // 放电过温保护
         if (bms_data_acq.temperature > bms_protect_params.OTD_Protect)
         {
-            BMS_ControlCharge(0);
-            bms_protect_alert = FlAG_ALERT_OTD;
+            BMS_ControlDischarge(0);
+            bms_protect_alert = FLAG_ALERT_OTD;
             bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
             LOG_W("OTD Fault\r\n");
         }
         // 放电低温保护
         else if (bms_data_acq.temperature < bms_protect_params.LTD_Protect)
         {
-            BMS_ControlCharge(0);
-            bms_protect_alert = FlAG_ALERT_LTD;
+            BMS_ControlDischarge(0);
+            bms_protect_alert = FLAG_ALERT_LTD;
             bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
             LOG_W("LTD Fault\r\n");
         }
@@ -141,7 +211,7 @@ static void BMS_ProtectHWMonitor(void)
     ret = BQ76940_GetSystemStatus(&reg_value);
     if (ret == 0)
     {
-        bms_protect_alert = FlAG_ALERT_AFE_COMM; // 通信故障
+        bms_protect_alert = FLAG_ALERT_AFE_COMM; // 通信故障
         LOG_W("AFE_COMM Fault\r\n");
         return;
     }
@@ -154,7 +224,7 @@ static void BMS_ProtectHWMonitor(void)
     // 放电过流保护
     if (reg_value & STAT_OCD_BIT)
     {
-        bms_protect_alert = FlAG_ALERT_OCD;
+        bms_protect_alert = FLAG_ALERT_OCD;
         bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
         BMS_ProtectStartTimer(bms_protect_params.OCD_RelieveTime);
         write_value |= STAT_OCD_BIT;
@@ -163,7 +233,7 @@ static void BMS_ProtectHWMonitor(void)
     // 放电短路保护
     if (reg_value & STAT_SCD_BIT)
     {
-        bms_protect_alert = FlAG_ALERT_SCD;
+        bms_protect_alert = FLAG_ALERT_SCD;
         bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
         BMS_ProtectStartTimer(bms_protect_params.SCD_RelieveTime);
         write_value |= STAT_SCD_BIT;
@@ -172,7 +242,7 @@ static void BMS_ProtectHWMonitor(void)
     // 过压保护
     if (reg_value & STAT_OV_BIT)
     {
-        bms_protect_alert = FlAG_ALERT_OV;
+        bms_protect_alert = FLAG_ALERT_OV;
         bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
         write_value |= STAT_OV_BIT;
         LOG_W("OV Fault\r\n");
@@ -180,7 +250,7 @@ static void BMS_ProtectHWMonitor(void)
     // 欠压保护
     if (reg_value & STAT_UV_BIT)
     {
-        bms_protect_alert = FlAG_ALERT_UV;
+        bms_protect_alert = FLAG_ALERT_UV;
         bms_protect_state = PROTECT_STATE_RELIEVE_WAIT;
         write_value |= STAT_UV_BIT;
         LOG_W("UV Fault\r\n");
@@ -198,7 +268,9 @@ static void BMS_ProtectHWMonitor(void)
         LOG_W("DEVICE_XREADY Fault\r\n");
     }
 
+    // 打印系统状态寄存器值
     LOG_I("SYS_STAT: 0x%02X\r\n", reg_value);
+
     // 清除故障
     BQ76940_ClearFaults(write_value);
     LOG_I("Clear Faults: 0x%02X\r\n", write_value);
@@ -216,7 +288,7 @@ static void BMS_ProtectRelieveWait(void)
     switch (bms_protect_alert)
     {
         // 充电过压解除保护判断
-    case FlAG_ALERT_OV:
+    case FLAG_ALERT_OV:
         if (bms_data_acq.max_voltage < bms_protect_params.OV_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -224,7 +296,7 @@ static void BMS_ProtectRelieveWait(void)
         }
         break;
         // 放电欠压解除保护判断
-    case FlAG_ALERT_UV:
+    case FLAG_ALERT_UV:
         if (bms_data_acq.min_voltage > bms_protect_params.UV_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -232,7 +304,7 @@ static void BMS_ProtectRelieveWait(void)
         }
         break;
         // 充电过温解除保护判断
-    case FlAG_ALERT_OTC:
+    case FLAG_ALERT_OTC:
         if (bms_data_acq.temperature < bms_protect_params.OTC_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -240,7 +312,7 @@ static void BMS_ProtectRelieveWait(void)
         }
         break;
         // 充电低温解除保护判断
-    case FlAG_ALERT_LTC:
+    case FLAG_ALERT_LTC:
         if (bms_data_acq.temperature > bms_protect_params.LTC_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -248,7 +320,7 @@ static void BMS_ProtectRelieveWait(void)
         }
         break;
         // 放电过温解除保护判断
-    case FlAG_ALERT_OTD:
+    case FLAG_ALERT_OTD:
         if (bms_data_acq.temperature < bms_protect_params.OTD_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -256,7 +328,7 @@ static void BMS_ProtectRelieveWait(void)
         }
         break;
         // 放电低温解除保护判断
-    case FlAG_ALERT_LTD:
+    case FLAG_ALERT_LTD:
         if (bms_data_acq.temperature > bms_protect_params.LTD_Relieve)
         {
             bms_protect_state = PROTECT_STATE_RELIEVE;
@@ -275,17 +347,18 @@ static void BMS_ProtectRelieve(void)
     // 过压、欠压不解除保护
     switch (bms_protect_alert)
     {
-    case FlAG_ALERT_OCC:
-    case FlAG_ALERT_OTC:
-    case FlAG_ALERT_LTC:
+    case FLAG_ALERT_OCC:
+    case FLAG_ALERT_OTC:
+    case FLAG_ALERT_LTC:
         BMS_ControlCharge(1);
         break;
 
-    case FlAG_ALERT_OCD:
-    case FlAG_ALERT_SCD:
-    case FlAG_ALERT_OTD:
-    case FlAG_ALERT_LTD:
+    case FLAG_ALERT_OCD:
+    case FLAG_ALERT_SCD:
+    case FLAG_ALERT_OTD:
+    case FLAG_ALERT_LTD:
         BMS_ControlDischarge(1);
+        break;
     }
 
     // 解除保护后，重置保护状态和警报标志
@@ -299,7 +372,7 @@ static void BMS_ProtectTimerEntry(void *paramter)
 {
     bms_protect_state = PROTECT_STATE_RELIEVE;
 
-    LOG_I("Protect Timer Tigger\r\n");
+    LOG_I("Protect Timer End\r\n");
 }
 
 // 启动用户保护任务的定时器
@@ -310,5 +383,5 @@ static void BMS_ProtectStartTimer(uint32_t sec)
     tick = sec * 1000;
     osTimerStart(pTimerProtect, tick);
 
-    LOG_I("Protect Timer Start\r\n");
+    LOG_I("Protect Timer Start, Protect Time:  %us\r\n", sec);
 }
