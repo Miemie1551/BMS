@@ -290,8 +290,8 @@ static uint8_t BQ76940_WriteByteWithCRC(uint8_t reg_addr, uint8_t data)
  */
 static uint8_t BQ76940_ReadByteWithCRC(uint8_t reg_addr, uint8_t *data)
 {
-    // uint8_t crc_buf[2] = {0};
-    // uint8_t crc;
+    uint8_t crc_buf[2] = {0};
+    uint8_t crc;
     uint8_t recv_data[2] = {0};
 
     if (I2C_Read(&hi2c, reg_addr, recv_data, 2) != 1)
@@ -299,16 +299,16 @@ static uint8_t BQ76940_ReadByteWithCRC(uint8_t reg_addr, uint8_t *data)
         LOG_E("Failed to read I2C data\r\n");
         return 0; // Return an invalid value to indicate failure
     }
-    // CRC校验：先构造CRC输入数据（设备地址 + 读位 + 寄存器地址 + 读到的数据）
-    // crc_buf[0] = (BQ76940_DEVICE_ADDR << 1) | 0x01; // Read operation
-    // crc_buf[1] = recv_data[0];                      // Received data
-    // LOG_I("Received byte: 0x%02X, CRC from device: 0x%02X\r\n", recv_data[0], recv_data[1]);
-    // crc = CRC8_Calculate(crc_buf, 2);
-    // if (crc != recv_data[1])
-    // {
-    //     LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X\r\n", crc, recv_data[1]);
-    //     // return 0;
-    // }
+    // CRC校验：先构造CRC输入数据（设备地址 + 读位 + 读到的数据）
+    crc_buf[0] = (BQ76940_DEVICE_ADDR << 1) | 0x01; // Read operation
+    crc_buf[1] = recv_data[0];                      // Received data
+    crc = CRC8_Calculate(crc_buf, 2);
+    // LOG_D("Received byte: 0x%02X, CRC from device: 0x%02X, CRC calculated: 0x%02X\r\n", recv_data[0], recv_data[1], crc);
+    if (crc != recv_data[1])
+    {
+        LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X\r\n", crc, recv_data[1]);
+        // return 0;
+    }
 
     *data = recv_data[0];
     return 1; // Success
@@ -322,21 +322,38 @@ static uint8_t BQ76940_ReadByteWithCRC(uint8_t reg_addr, uint8_t *data)
  */
 static uint8_t BQ76940_ReadHalfWordWithCRC(uint8_t reg_addr, uint16_t *data)
 {
-    uint8_t high_byte = 0, low_byte = 0;
+    uint8_t crc_buf[2] = {0};
+    uint8_t crc;
+    uint8_t recv_data[4] = {0}; // 1字节数据 + 1字节CRC + 1字节数据 + 1字节CRC
 
-    if (BQ76940_ReadByteWithCRC(reg_addr, &high_byte) != 1)
+    if (I2C_Read(&hi2c, reg_addr, recv_data, 4) != 1)
     {
-        LOG_E("Failed to read high byte\r\n");
+        LOG_E("Failed to read I2C data\r\n");
         return 0; // Return an invalid value to indicate failure
     }
 
-    if (BQ76940_ReadByteWithCRC(reg_addr + 1, &low_byte) != 1)
+    // 第一个字节CRC校验：先构造CRC输入数据（设备地址 + 读位 + 读到的数据）
+    crc_buf[0] = (BQ76940_DEVICE_ADDR << 1) | 0x01; // Read operation
+    crc_buf[1] = recv_data[0];                      // Received data
+    crc = CRC8_Calculate(crc_buf, 2);
+    // LOG_D("Received byte: 0x%02X, CRC from device: 0x%02X, CRC calculated: 0x%02X\r\n", recv_data[0], recv_data[1], crc);
+    if (crc != recv_data[1])
     {
-        LOG_E("Failed to read low byte\r\n");
-        return 0; // Return an invalid value to indicate failure
+        LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X\r\n", crc, recv_data[1]);
+        // return 0;
     }
 
-    *data = ((high_byte << 8) | low_byte);
+    // 第二个字节CRC校验：先构造CRC输入数据（读到的数据）
+    crc_buf[0] = recv_data[2]; // Received data
+    crc = CRC8_Calculate(crc_buf, 1);
+    // LOG_D("Received byte: 0x%02X, CRC from device: 0x%02X, CRC calculated: 0x%02X\r\n", recv_data[2], recv_data[3], crc);
+    if (crc != recv_data[3])
+    {
+        LOG_E("CRC check failed! Expected: 0x%02X, Received: 0x%02X\r\n", crc, recv_data[3]);
+        // return 0;
+    }
+
+    *data = ((recv_data[0] << 8) | recv_data[2]);
     return 1; // Success
 }
 

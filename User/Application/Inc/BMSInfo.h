@@ -35,10 +35,10 @@
 #define BMS_OTD_RELIEVE 600 // 放电过温解除保护阈值(℃)
 
 /* 充电放电SOC阈值(放大10倍，单位：%) */
-#define BMS_STOP_CHARGING_SOC 1000   // 停止充电SOC阈值
-#define BMS_STOP_DISCHARGING_SOC 0   // 停止放电SOC阈值
-#define BMS_START_CHARGING_SOC 990   // 开始充电SOC阈值
-#define BMS_START_DISCHARGING_SOC 10 // 开始放电SOC阈值
+#define BMS_STOP_CHARGING_SOC 100   // 停止充电SOC阈值
+#define BMS_STOP_DISCHARGING_SOC 0  // 停止放电SOC阈值
+#define BMS_START_CHARGING_SOC 99   // 开始充电SOC阈值
+#define BMS_START_DISCHARGING_SOC 1 // 开始放电SOC阈值
 
 //
 typedef enum

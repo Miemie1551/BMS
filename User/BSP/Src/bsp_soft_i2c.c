@@ -18,7 +18,8 @@ static void I2C_Stop(I2C_Handle_t *hi2c);
 static void I2C_SendByte(I2C_Handle_t *hi2c, uint8_t byte);
 static uint8_t I2C_ReceiveByte(I2C_Handle_t *hi2c);
 
-static void I2C_SendAck(I2C_Handle_t *hi2c, uint8_t ack);
+static void I2C_SendAck(I2C_Handle_t *hi2c);
+static void I2C_SendNAck(I2C_Handle_t *hi2c);
 static uint8_t I2C_ReceiveAck(I2C_Handle_t *hi2c);
 
 /**
@@ -111,7 +112,7 @@ static uint8_t I2C_ReadSDA(I2C_Handle_t *hi2c)
  */
 static void I2C_Start(I2C_Handle_t *hi2c)
 {
-    I2C_WriteSDA(hi2c, 1); // 兼容重复发送起始位
+    I2C_WriteSDA(hi2c, 1); // 释放SDA引脚，兼容重复发送起始位
     I2C_WriteSCL(hi2c, 1);
     I2C_WriteSDA(hi2c, 0); // 在SCL为高电平时拉低SDA表示起始条件
     I2C_WriteSCL(hi2c, 0);
@@ -168,12 +169,24 @@ static uint8_t I2C_ReceiveByte(I2C_Handle_t *hi2c)
 /**
  * @brief 发送ACK
  * @param hi2c I2C handle
- * @param ack 0: ACK, 1: NACK
  * @retval None
  */
-static void I2C_SendAck(I2C_Handle_t *hi2c, uint8_t ack)
+static void I2C_SendAck(I2C_Handle_t *hi2c)
 {
-    I2C_WriteSDA(hi2c, ack);
+    I2C_WriteSDA(hi2c, 0); // 发送ACK
+    I2C_WriteSCL(hi2c, 1);
+    I2C_WriteSCL(hi2c, 0);
+    I2C_WriteSDA(hi2c, 1); // 释放SDA
+}
+
+/**
+ * @brief 发送NACK
+ * @param hi2c I2C handle
+ * @retval None
+ */
+static void I2C_SendNAck(I2C_Handle_t *hi2c)
+{
+    I2C_WriteSDA(hi2c, 1); // 发送NACK
     I2C_WriteSCL(hi2c, 1);
     I2C_WriteSCL(hi2c, 0);
 }
@@ -191,6 +204,8 @@ static uint8_t I2C_ReceiveAck(I2C_Handle_t *hi2c)
     I2C_WriteSCL(hi2c, 0);
     return ack;
 }
+
+/* ======================================== 公有接口 ======================================== */
 
 /**
  * @brief I2C 写数据
@@ -279,7 +294,14 @@ uint8_t I2C_Read(I2C_Handle_t *hi2c, uint8_t reg_addr, uint8_t *data, uint16_t d
     for (uint16_t i = 0; i < data_len; i++)
     {
         data[i] = I2C_ReceiveByte(hi2c);
-        I2C_SendAck(hi2c, (data_len - 1 - i) ? 0 : 1);
+        if (i < data_len - 1)
+        {
+            I2C_SendAck(hi2c); // 非最后一个字节，发送ACK
+        }
+        else
+        {
+            I2C_SendNAck(hi2c); // 最后一个字节，发送NACK
+        }
     }
 
     I2C_Stop(hi2c);

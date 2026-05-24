@@ -92,13 +92,12 @@ static void CellParameter_Calculate(void)
 
 static void BMS_PrintInfo(void)
 {
-    float soc_f = bms_battery_gauge_data.soc * 0.1f;       // 转换为%
     float current_a = bms_data_acq.current * 0.001f;       // 转换为A
     float temperature_c = bms_data_acq.temperature * 0.1f; // 转换为℃
 
     LOG_I("/******************* BMS Info *******************/\r\n");
     BMS_StateOutput();
-    LOG_I("Battery SOC: %.1f%%\r\n", soc_f);
+    LOG_I("Battery SOC: %d%%\r\n", bms_battery_gauge_data.soc);
 
     LOG_I("Cell Max Voltage: %d.%03dV\r\n", bms_data_acq.max_voltage / 1000, bms_data_acq.max_voltage % 1000);
     LOG_I("Cell Min Voltage: %d.%03dV\r\n", bms_data_acq.min_voltage / 1000, bms_data_acq.min_voltage % 1000);

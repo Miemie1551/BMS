@@ -8,7 +8,7 @@
 
 BMS_BatteryGaugeData_t bms_battery_gauge_data =
     {
-        .soc = 500,
+        .soc = 50,
         .capacity_rated = 0,
         .capacity_real = 0,
         .capacity_remain = 0,
@@ -44,13 +44,13 @@ void BatteryGaugeTask(void *argument)
         case BMS_STATE_STANDBY:
         case BMS_STATE_FAULT:
             // 开路电压法计算SOC
-            BMS_OcvCalculateToSoc(bms_data_acq.avg_voltage);
+            BMS_OcvCalculateToSoc(bms_data_acq.min_voltage);
             break;
 
         case BMS_STATE_CHARGING:
         case BMS_STATE_DISCHARGING:
             // 安时积分法计算SOC(未实现)
-            BMS_OcvCalculateToSoc(bms_data_acq.avg_voltage);
+            BMS_OcvCalculateToSoc(bms_data_acq.min_voltage);
             break;
         default:
             break;
@@ -70,22 +70,13 @@ static void BMS_OcvCalculateToSoc(uint16_t voltage)
     }
     else if (voltage >= SocOcvTab[100])
     {
-        soc = 1000;
+        soc = 100;
     }
     else
     {
         uint16_t index = right_bound(SocOcvTab, 0, 100, voltage);
-
-        if (voltage == SocOcvTab[index])
-        {
-            // 整数SOC值
-            soc = index * 10;
-        }
-        else
-        {
-            // 计算百分比后的小数点
-            soc = index * 10 + ((SocOcvTab[index] - voltage) * 10) / (SocOcvTab[index] - SocOcvTab[index + 1]);
-        }
+        // 整数SOC值
+        soc = index;
     }
 
     bms_battery_gauge_data.soc = soc;
